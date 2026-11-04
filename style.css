@@ -517,4 +517,109 @@ footer {
     .brand {
         font-size: 12px;
     }
+
+    .project-link {
+        color: #9af293;
+        background: transparent;
+        border: none;
+        padding: 0;
+        font-weight: 800;
+        cursor: pointer;
+        font-size: 12px;
+    }
+
+        .project-link:hover {
+            text-decoration: underline;
+        }
+
+    /* PROJECT DETAILS MODAL */
+
+    .project-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        background: #000c;
+        backdrop-filter: blur(9px);
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+
+        .project-modal.active {
+            display: flex;
+        }
+
+    .project-modal-content {
+        position: relative;
+        width: min(650px, 100%);
+        max-height: 90vh;
+        overflow-y: auto;
+        background: #101a12;
+        border: 1px solid #315b36;
+        border-radius: 18px;
+        box-shadow: 0 20px 80px #0009;
+    }
+
+        .project-modal-content > img {
+            display: block;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            object-fit: cover;
+        }
+
+    .modal-details {
+        padding: 24px;
+    }
+
+        .modal-details h2 {
+            margin: 10px 0;
+        }
+
+        .modal-details p {
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .modal-details h3 {
+            margin-top: 28px;
+        }
+
+    .modal-close {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 2;
+        width: 38px;
+        height: 38px;
+        border: 1px solid #ffffff30;
+        border-radius: 50%;
+        background: #080d09dd;
+        color: white;
+        font-size: 25px;
+    }
+
+    .download-buttons {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .download-button {
+        flex: 1;
+        min-width: 130px;
+        padding: 15px;
+        border-radius: 10px;
+        background: #245c2b;
+        color: white;
+        text-align: center;
+        text-decoration: none;
+        font-weight: 800;
+    }
+
+        .download-button.disabled {
+            background: #263329;
+            color: #91a394;
+            cursor: default;
+        }
 }

@@ -210,7 +210,9 @@ function projectCard(project, index) {
 
                     <span class="status">● ${translation.soon}</span>
 
-                    <span class="project-link">View Details →</span>
+                    <button class="project-link view-details" type="button">
+    View Details →
+</button>
 
                 </div>
 
@@ -397,21 +399,20 @@ function closeProject() {
 
 // CLICK ON PROJECT CARDS
 
-document.addEventListener('click', (event) => {
+document.addEventListener('click', function (event) {
+
     const button = event.target.closest('.view-details');
-    const card = event.target.closest('[data-project-index]');
+    const card = event.target.closest('.card[data-project-index]');
 
     if (button && card) {
         event.preventDefault();
-        openProject(Number(card.dataset.projectIndex));
-        return;
+
+        const index = Number(card.dataset.projectIndex);
+
+        openProject(index);
     }
 
-    if (card) {
-        openProject(Number(card.dataset.projectIndex));
-    }
 });
-
 
 // KEYBOARD SUPPORT FOR PROJECT CARDS
 
