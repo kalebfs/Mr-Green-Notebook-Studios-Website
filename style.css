@@ -614,4 +614,51 @@ footer {
     .footer-inner {
         flex-direction: column;
     }
+
+    /* ADMIN LOGIN AND UPDATE EDITOR */
+
+    .updates-toolbar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin: 25px 0;
+    }
+
+    #adminLoginForm,
+    #updateForm {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        margin-top: 20px;
+    }
+
+        #adminLoginForm input,
+        #updateForm input,
+        #updateForm textarea {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            outline: none;
+            background: var(--bg);
+            color: var(--text);
+            font: inherit;
+        }
+
+            #adminLoginForm input:focus,
+            #updateForm input:focus,
+            #updateForm textarea:focus {
+                border-color: var(--accent);
+            }
+
+        #updateForm textarea {
+            resize: vertical;
+        }
+
+    #loginError,
+    #updateError {
+        color: #ff7777;
+        font-size: 13px;
+    }
 }

@@ -196,6 +196,27 @@ const dialogDescription = document.getElementById("dialogDescription");
 const dialogDownloads = document.getElementById("dialogDownloads");
 const langToggle = document.getElementById("langToggle");
 const closeDialogButton = document.getElementById("closeDialog");
+/* =========================
+   ADMIN LOGIN DIALOG
+========================= */
+
+const adminLoginButton = document.getElementById("adminLoginButton");
+const adminLoginDialog = document.getElementById("adminLoginDialog");
+const closeAdminLogin = document.getElementById("closeAdminLogin");
+
+adminLoginButton.addEventListener("click", () => {
+    adminLoginDialog.showModal();
+});
+
+closeAdminLogin.addEventListener("click", () => {
+    adminLoginDialog.close();
+});
+
+adminLoginDialog.addEventListener("click", event => {
+    if (event.target === adminLoginDialog) {
+        adminLoginDialog.close();
+    }
+});
 
 
 /* =========================
