@@ -134,7 +134,7 @@ const projects = [
 
         pc: "https://github.com/kalebfs/Mr-Green-Notebook-Studios-Website/releases/download/V1.6/baldi_s_basics_remagined_v16.rar",
 
-        mobile: "never",
+        mobile: "NEVER",
 
         desc: {
             pt: "Uma nova experiência de Baldi’s Basics com modificadores.",
