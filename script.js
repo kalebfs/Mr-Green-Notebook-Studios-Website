@@ -134,7 +134,7 @@ const projects = [
 
         pc: "https://github.com/kalebfs/Mr-Green-Notebook-Studios-Website/releases/download/V1.6/baldi_s_basics_remagined_v16.rar",
 
-        mobile: "",
+        mobile: "never",
 
         desc: {
             pt: "Uma nova experiência de Baldi’s Basics com modificadores.",
@@ -378,7 +378,7 @@ function createDownloadButton(platform, url) {
     const text = translations[language];
 
     // Never available
-    if (url === "never") {
+    if (typeof url === "string" && url.trim().toLowerCase() === "never") {
         const unavailable = document.createElement("span");
 
         unavailable.className = "download-button disabled";
