@@ -397,14 +397,19 @@ function closeProject() {
 
 // CLICK ON PROJECT CARDS
 
-document.addEventListener('click', event => {
-
+document.addEventListener('click', (event) => {
+    const button = event.target.closest('.view-details');
     const card = event.target.closest('[data-project-index]');
 
-    if (!card) return;
+    if (button && card) {
+        event.preventDefault();
+        openProject(Number(card.dataset.projectIndex));
+        return;
+    }
 
-    openProject(Number(card.dataset.projectIndex));
-
+    if (card) {
+        openProject(Number(card.dataset.projectIndex));
+    }
 });
 
 
