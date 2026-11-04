@@ -131,11 +131,14 @@ const projects = [
         icon: "",
         tag: "Mod",
         image: "images/baldi-mods.jpg",
+
         pc: "https://github.com/kalebfs/Mr-Green-Notebook-Studios-Website/releases/download/V1.6/baldi_s_basics_remagined_v16.rar",
+
         mobile: "never",
+
         desc: {
-            pt: "Um de Baldi’s Basics com mods e modificadores e muito mais! tenha diversão.",
-            en: "A  Baldi’s Basics mod by mr green notebook studio with modifiers and more! have fun."
+            pt: "Uma nova experiência de Baldi’s Basics com mods e modificadores.",
+            en: "A new Baldi’s Basics experience with mods and modifiers."
         }
     },
 
@@ -145,8 +148,10 @@ const projects = [
         icon: "",
         tag: "Remake",
         image: "images/granny-remake.jpg",
+
         pc: "",
         mobile: "",
+
         desc: {
             pt: "Um projeto de remake de terror em desenvolvimento.",
             en: "A horror remake project currently in development."
@@ -159,8 +164,10 @@ const projects = [
         icon: "",
         tag: "Game",
         image: "images/momo-horror.jpg",
+
         pc: "",
         mobile: "",
+
         desc: {
             pt: "Um jogo original de terror desenvolvido pelo estúdio.",
             en: "An original horror game developed by the studio."
@@ -256,9 +263,9 @@ function createProjectCard(project, index) {
         cover.appendChild(image);
     }
 
-    // Only create the icon if it has content.
     if (project.icon && project.icon.trim() !== "") {
         const icon = document.createElement("span");
+
         icon.className = "cover-icon";
         icon.textContent = project.icon;
 
@@ -370,6 +377,18 @@ function renderProjects() {
 function createDownloadButton(platform, url) {
     const text = translations[language];
 
+    // Never available
+    if (url === "never") {
+        const unavailable = document.createElement("span");
+
+        unavailable.className = "download-button disabled";
+        unavailable.textContent =
+            `${platform} — ${text.unavailable}`;
+
+        return unavailable;
+    }
+
+    // Coming soon
     if (!url) {
         const unavailable = document.createElement("span");
 
@@ -380,6 +399,7 @@ function createDownloadButton(platform, url) {
         return unavailable;
     }
 
+    // Available download
     const link = document.createElement("a");
 
     link.className = "download-button";
