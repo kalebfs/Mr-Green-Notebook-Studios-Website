@@ -1,4 +1,3 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
 
 import {
@@ -18,9 +17,6 @@ import {
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
 
-"use strict";
-
-
 /* =========================
    FIREBASE CONFIGURATION
 ========================= */
@@ -39,7 +35,6 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 const ADMIN_UID = "Qouhq47ZojcixHwiXkfmXwfT2xe2";
-
 
 /* =========================
    TRANSLATIONS
@@ -159,7 +154,6 @@ const translations = {
     }
 };
 
-
 /* =========================
    PROJECTS
 ========================= */
@@ -215,17 +209,14 @@ const projects = [
     }
 ];
 
-
 /* =========================
    STATE
 ========================= */
 
 let language = "pt";
 let currentProjectIndex = null;
-
 let isAdmin = false;
 let latestUpdates = [];
-
 
 /* =========================
    ELEMENTS
@@ -240,8 +231,6 @@ const dialogDownloads = document.getElementById("dialogDownloads");
 
 const langToggle = document.getElementById("langToggle");
 const closeDialogButton = document.getElementById("closeDialog");
-
-/* Admin elements */
 
 const adminLoginButton = document.getElementById("adminLoginButton");
 const adminLogoutButton = document.getElementById("adminLogoutButton");
@@ -268,6 +257,75 @@ const updateDate = document.getElementById("updateDate");
 
 const updatesList = document.getElementById("updatesList");
 
+/* =========================
+   SEASONAL THEMES
+========================= */
+
+function updateSeasonalTheme() {
+    const now = new Date();
+
+    const month = now.getMonth();
+    const day = now.getDate();
+
+    let theme = "green";
+
+    /*
+       OCTOBER THEME
+       October 1 at 00:00
+       Until November 1 at 00:00
+    */
+
+    if (month === 9) {
+        theme = "orange";
+    }
+
+    /*
+       CHRISTMAS THEME
+       December 1 at 00:00
+       Until December 26 at 00:00
+    */
+
+    if (month === 11 && day >= 1 && day <= 25) {
+        theme = "christmas";
+    }
+
+    /*
+       NEW YEAR THEME
+       December 30 at 00:00
+       Until January 2 at 00:00
+    */
+
+    if (
+        (month === 11 && day >= 30) ||
+        (month === 0 && day <= 1)
+    ) {
+        theme = "newyear";
+    }
+
+    document.documentElement.dataset.theme = theme;
+
+    const themeColors = {
+        green: "#080d09",
+        orange: "#120b06",
+        christmas: "#fffafa",
+        newyear: "#090909"
+    };
+
+    const themeColorMeta = document.querySelector(
+        'meta[name="theme-color"]'
+    );
+
+    if (themeColorMeta) {
+        themeColorMeta.setAttribute("content", themeColors[theme]);
+    }
+
+    console.log("MR GREEN: Tema ativo:", theme);
+}
+
+updateSeasonalTheme();
+
+// Atualiza o tema caso o visitante deixe a página aberta durante a virada.
+setInterval(updateSeasonalTheme, 60 * 1000);
 
 /* =========================
    PAGE NAVIGATION
@@ -308,9 +366,8 @@ function showPage(pageId, updateHistory = true) {
     });
 }
 
-
 /* =========================
-   PROJECT CARD
+   PROJECT CARDS
 ========================= */
 
 function createProjectCard(project, index) {
@@ -327,9 +384,7 @@ function createProjectCard(project, index) {
         image.alt = project.name;
         image.loading = "lazy";
 
-        image.onerror = () => {
-            image.remove();
-        };
+        image.onerror = () => image.remove();
 
         cover.appendChild(image);
     }
@@ -380,7 +435,6 @@ function createProjectCard(project, index) {
     return card;
 }
 
-
 /* =========================
    RENDER PROJECTS
 ========================= */
@@ -389,7 +443,6 @@ function renderGrid(gridId, items) {
     const grid = document.getElementById(gridId);
 
     if (!grid) {
-        console.warn(`Grid not found: ${gridId}`);
         return;
     }
 
@@ -406,12 +459,9 @@ function renderGrid(gridId, items) {
     }
 
     items.forEach(item => {
-        const card = createProjectCard(
-            item.project,
-            item.index
+        grid.appendChild(
+            createProjectCard(item.project, item.index)
         );
-
-        grid.appendChild(card);
     });
 }
 
@@ -439,7 +489,6 @@ function renderProjects() {
     );
 }
 
-
 /* =========================
    DOWNLOAD BUTTONS
 ========================= */
@@ -447,12 +496,14 @@ function renderProjects() {
 function createDownloadButton(platform, url) {
     const text = translations[language];
 
-    if (typeof url === "string" && url.trim().toLowerCase() === "never") {
+    if (
+        typeof url === "string" &&
+        url.trim().toLowerCase() === "never"
+    ) {
         const unavailable = document.createElement("span");
 
         unavailable.className = "download-button disabled";
-        unavailable.textContent =
-            `${platform} — ${text.unavailable}`;
+        unavailable.textContent = `${platform} — ${text.unavailable}`;
 
         return unavailable;
     }
@@ -461,8 +512,7 @@ function createDownloadButton(platform, url) {
         const unavailable = document.createElement("span");
 
         unavailable.className = "download-button disabled";
-        unavailable.textContent =
-            `${platform} — ${text.comingSoonDownload}`;
+        unavailable.textContent = `${platform} — ${text.comingSoonDownload}`;
 
         return unavailable;
     }
@@ -477,9 +527,8 @@ function createDownloadButton(platform, url) {
     return link;
 }
 
-
 /* =========================
-   OPEN PROJECT
+   PROJECT DETAILS
 ========================= */
 
 function openProject(index) {
@@ -522,11 +571,6 @@ function openProject(index) {
     }
 }
 
-
-/* =========================
-   CLOSE PROJECT
-========================= */
-
 function closeProject() {
     if (dialog && dialog.open) {
         dialog.close();
@@ -546,7 +590,6 @@ if (dialog) {
         }
     });
 }
-
 
 /* =========================
    ADMIN LOGIN
@@ -573,7 +616,6 @@ if (closeAdminLogin && adminLoginDialog) {
         }
     });
 }
-
 
 /* =========================
    ADMIN LOGIN FORM
@@ -612,15 +654,12 @@ if (adminLoginForm) {
                 loginError.textContent =
                     "Login failed. Check your email and password.";
             }
-
-            alert(error.code || error.message);
         }
     });
 }
 
-
 /* =========================
-   ADMIN AUTH STATE
+   AUTH STATE
 ========================= */
 
 onAuthStateChanged(auth, user => {
@@ -643,7 +682,6 @@ onAuthStateChanged(auth, user => {
     }
 });
 
-
 /* =========================
    ADMIN LOGOUT
 ========================= */
@@ -658,9 +696,8 @@ if (adminLogoutButton) {
     });
 }
 
-
 /* =========================
-   OPEN UPDATE EDITOR
+   CREATE UPDATE
 ========================= */
 
 function getLocalDate() {
@@ -693,9 +730,16 @@ if (closeUpdateEditor && updateEditorDialog) {
     });
 }
 
+if (updateEditorDialog) {
+    updateEditorDialog.addEventListener("click", event => {
+        if (event.target === updateEditorDialog) {
+            updateEditorDialog.close();
+        }
+    });
+}
 
 /* =========================
-   CREATE UPDATE
+   PUBLISH UPDATE
 ========================= */
 
 if (updateForm) {
@@ -739,6 +783,33 @@ if (updateForm) {
     });
 }
 
+/* =========================
+   DATE FORMATTING
+========================= */
+
+function formatUpdateDate(dateString) {
+    const date = new Date(`${dateString}T12:00:00`);
+
+    if (Number.isNaN(date.getTime())) {
+        return dateString;
+    }
+
+    const locale = language === "pt" ? "pt-BR" : "en-US";
+
+    const day = new Intl.DateTimeFormat(locale, {
+        day: "2-digit"
+    }).format(date);
+
+    const month = new Intl.DateTimeFormat(locale, {
+        month: "short"
+    }).format(date).replace(/\./g, "");
+
+    const year = new Intl.DateTimeFormat(locale, {
+        year: "numeric"
+    }).format(date);
+
+    return `${day} ${month} ${year}`.toUpperCase();
+}
 
 /* =========================
    RENDER FIRESTORE UPDATES
@@ -749,27 +820,18 @@ function renderFirestoreUpdates() {
         return;
     }
 
-    updatesList.querySelectorAll("[data-firestore-update]").forEach(element => {
-        element.remove();
-    });
+    updatesList
+        .querySelectorAll("[data-firestore-update]")
+        .forEach(element => element.remove());
 
     latestUpdates.forEach(update => {
         const article = document.createElement("article");
+
         article.className = "update";
         article.dataset.firestoreUpdate = "true";
 
         const time = document.createElement("time");
-
-        const date = new Date(`${update.date}T12:00:00`);
-
-        time.textContent = date.toLocaleDateString(
-            language === "pt" ? "pt-BR" : "en-US",
-            {
-                day: "2-digit",
-                month: "short",
-                year: "numeric"
-            }
-        );
+        time.textContent = formatUpdateDate(update.date);
 
         const title = document.createElement("h3");
         title.textContent = update.title;
@@ -782,7 +844,6 @@ function renderFirestoreUpdates() {
         updatesList.appendChild(article);
     });
 }
-
 
 /* =========================
    FIRESTORE LISTENER
@@ -804,14 +865,16 @@ onSnapshot(
 
         renderFirestoreUpdates();
 
-        console.log("MR GREEN: Atualizações carregadas:", latestUpdates.length);
+        console.log(
+            "MR GREEN: Atualizações carregadas:",
+            latestUpdates.length
+        );
     },
 
     error => {
         console.error("Could not load updates:", error);
     }
 );
-
 
 /* =========================
    LANGUAGE
@@ -832,6 +895,11 @@ function changeLanguage() {
         }
     });
 
+    // Traduz a data da primeira atualização fixa.
+    document.querySelectorAll("time[data-date]").forEach(time => {
+        time.textContent = formatUpdateDate(time.dataset.date);
+    });
+
     if (langToggle) {
         langToggle.textContent = language === "pt" ? "EN" : "PT";
     }
@@ -839,7 +907,11 @@ function changeLanguage() {
     renderProjects();
     renderFirestoreUpdates();
 
-    if (currentProjectIndex !== null && dialog && dialog.open) {
+    if (
+        currentProjectIndex !== null &&
+        dialog &&
+        dialog.open
+    ) {
         openProject(currentProjectIndex);
     }
 }
@@ -847,7 +919,6 @@ function changeLanguage() {
 if (langToggle) {
     langToggle.addEventListener("click", changeLanguage);
 }
-
 
 /* =========================
    NAVIGATION EVENTS
@@ -857,12 +928,9 @@ document.querySelectorAll("[data-page]").forEach(element => {
     element.addEventListener("click", event => {
         event.preventDefault();
 
-        const pageId = element.dataset.page;
-
-        showPage(pageId);
+        showPage(element.dataset.page);
     });
 });
-
 
 /* =========================
    BROWSER HISTORY
@@ -880,7 +948,6 @@ window.addEventListener("popstate", () => {
     showPage(getPageFromHash(), false);
 });
 
-
 /* =========================
    INITIALIZATION
 ========================= */
@@ -896,13 +963,21 @@ function initializeWebsite() {
         !langToggle ||
         !closeDialogButton
     ) {
-        console.error("MR GREEN: Um ou mais elementos HTML não foram encontrados.");
+        console.error(
+            "MR GREEN: Um ou mais elementos HTML não foram encontrados."
+        );
+
         return;
     }
 
     showPage(getPageFromHash(), false);
 
     renderProjects();
+
+    // Formata a primeira data ao carregar a página.
+    document.querySelectorAll("time[data-date]").forEach(time => {
+        time.textContent = formatUpdateDate(time.dataset.date);
+    });
 
     console.log("MR GREEN: Website carregado com sucesso!");
 }
