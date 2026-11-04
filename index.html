@@ -1,56 +1,233 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#09080d" />
-  <meta name="description" content="Kalebfs — games, mods and remakes." />
-  <title>Kalebfs — Official Website</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#080d09">
+    <meta name="description" content="Mr Green Notebook Studios — games, mods and remakes.">
+
+    <title>Mr Green Notebook Studios — Official Website</title>
+
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="stylesheet" href="style.css">
-
 </head>
+
 <body>
-<header><div class="wrap topbar">
-            <a class="brand" href="#home" aria-label="Kalebfs home" onclick="showPage('home');return false">
+
+    <header>
+        <div class="wrap topbar">
+
+            <a class="brand" href="#home" aria-label="Mr Green Notebook home" onclick="showPage('home');return false">
+
                 <span class="brand-mark">
-                    <img src="icon.png" alt="Kalebfs" width="20" height="20">
+                    <img src="icon.png" alt="Mr Green Notebook">
                 </span>
-                <span>Mr Green Notebook Studio Website!</span>
+
+                <span>Mr Green Notebook Studio!</span>
+
             </a>
-    <nav aria-label="Navegação principal">
-    <button class="nav-btn active" data-page="home" data-i18n="navHome">Início</button>
-    <button class="nav-btn" data-page="mods" data-i18n="navMods">Mods</button>
-    <button class="nav-btn" data-page="remakes" data-i18n="navRemakes">Remakes</button>
-    <button class="nav-btn" data-page="games" data-i18n="navGames">Jogos</button>
-    <button class="nav-btn" data-page="updates" data-i18n="navUpdates">Atualizações</button>
-    <button class="nav-btn" data-page="about" data-i18n="navAbout">Sobre</button>
-    <button class="lang-btn" id="langToggle" aria-label="Mudar idioma">EN</button>
-  </nav>
-</div></header>
-<main class="wrap">
-  <section class="page active" id="home">
-    <div class="hero"><div class="hero-content">
-      <div class="eyebrow" data-i18n="heroEyebrow">ESTÚDIO INDEPENDENTE • DESDE 2026</div>
-      <h1>WELCOME TO<br><span>KALEBFS.</span></h1>
-      <p class="lead" data-i18n="heroText">Um universo de jogos, mods e remakes. Explore meus projetos, acompanhe novidades e descubra o que está sendo desenvolvido.</p>
-      <div class="actions"><button class="primary" onclick="showPage('mods')" data-i18n="explore">EXPLORAR PROJETOS</button><button class="secondary" onclick="showPage('about')" data-i18n="aboutButton">CONHECER A KALEBFS</button></div>
-    </div></div>
-    <div class="section-head"><div><h2 data-i18n="featured">Projetos em destaque</h2><p class="sub" data-i18n="featuredSub">Uma seleção de projetos da Kalebfs.</p></div></div>
-    <div class="grid" id="featuredGrid"></div>
-  </section>
-  <section class="page" id="mods"><div class="eyebrow">KALEBFS / MODS</div><h1 class="page-title" data-i18n="modsTitle">Mods</h1><p class="page-intro" data-i18n="modsIntro">Modificações, novas ideias e experiências diferentes para jogos.</p><div class="grid" id="modsGrid"></div></section>
-  <section class="page" id="remakes"><div class="eyebrow">KALEBFS / REMAKES</div><h1 class="page-title" data-i18n="remakesTitle">Remakes</h1><p class="page-intro" data-i18n="remakesIntro">Projetos inspirados em jogos que marcaram época, recriados com ideias e identidade próprias.</p><div class="grid" id="remakesGrid"></div></section>
-  <section class="page" id="games"><div class="eyebrow">KALEBFS / GAMES</div><h1 class="page-title" data-i18n="gamesTitle">Jogos</h1><p class="page-intro" data-i18n="gamesIntro">Conheça os jogos originais desenvolvidos pela Kalebfs.</p><div class="grid" id="gamesGrid"></div></section>
-  <section class="page" id="updates"><div class="eyebrow">KALEBFS / NEWS</div><h1 class="page-title" data-i18n="updatesTitle">Atualizações</h1><p class="page-intro" data-i18n="updatesIntro">Novidades, anúncios e registros do desenvolvimento.</p>
-    <article class="update"><time>04 NOV 2026</time><h3 data-i18n="updateOneTitle">O site do Mr Green Notebook Studios foi criado!</h3><p data-i18n="updateOneText">Esta é a primeira versão do portal. Em breve, mais projetos e novidades serão adicionados.</p></article>
-    <article class="update"><time data-i18n="comingSoon">EM BREVE</time><h3 data-i18n="updateTwoTitle">Mais novidades chegando</h3><p data-i18n="updateTwoText">Acompanhe esta página para conhecer os próximos lançamentos.</p></article>
-  </section>
-  <section class="page" id="about"><div class="eyebrow">KALEBFS / ABOUT</div><h1 class="page-title" data-i18n="aboutTitle">Sobre a Kalebfs</h1>
-    <div class="about-box"><h2 data-i18n="aboutHeading">Criatividade em cada projeto.</h2><p data-i18n="aboutText">Kalebfs é um espaço independente para criar jogos, mods e remakes. Este site reúne os projetos em um só lugar e será atualizado conforme novas experiências forem desenvolvidas.</p></div>
-    <div class="about-box"><h2 data-i18n="contactHeading">Contato e comunidade</h2><p data-i18n="contactText">Adicione aqui seus links oficiais, como YouTube, Roblox ou outras redes. Não coloque informações pessoais privadas.</p></div>
-  </section>
-</main>
-<footer><div class="wrap footer-inner"><span>© 2026 KALEBFS. <span data-i18n="rights">Todos os direitos reservados.</span></span><span data-i18n="footer">Feito com criatividade.</span></div></footer>
-<script src="script.js"></script>
-</body></html>
+
+            <nav aria-label="Main navigation">
+
+                <button class="nav-btn active" data-page="home" data-i18n="navHome">Início</button>
+                <button class="nav-btn" data-page="mods" data-i18n="navMods">Mods</button>
+                <button class="nav-btn" data-page="remakes" data-i18n="navRemakes">Remakes</button>
+                <button class="nav-btn" data-page="games" data-i18n="navGames">Jogos</button>
+                <button class="nav-btn" data-page="updates" data-i18n="navUpdates">Atualizações</button>
+                <button class="nav-btn" data-page="about" data-i18n="navAbout">Sobre</button>
+
+                <button class="lang-btn" id="langToggle" aria-label="Change language">EN</button>
+
+            </nav>
+
+        </div>
+    </header>
+
+    <main class="wrap">
+
+        <!-- HOME -->
+
+        <section class="page active" id="home">
+
+            <div class="hero">
+                <div class="hero-content">
+
+                    <div class="eyebrow" data-i18n="heroEyebrow">
+                        INDEPENDENT STUDIO • SINCE 2026
+                    </div>
+
+                    <h1>
+                        WELCOME TO<br>
+                        <span>MR GREEN.</span>
+                    </h1>
+
+                    <p class="lead" data-i18n="heroText">
+                        Um universo de jogos, mods e remakes. Explore meus projetos, acompanhe novidades e descubra o que está sendo desenvolvido.
+                    </p>
+
+                    <div class="actions">
+
+                        <button class="primary" onclick="showPage('mods')" data-i18n="explore">
+                            EXPLORAR PROJETOS
+                        </button>
+
+                        <button class="secondary" onclick="showPage('about')" data-i18n="aboutButton">
+                            CONHECER O ESTÚDIO
+                        </button>
+
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="section-head">
+                <div>
+                    <h2 data-i18n="featured">Projetos em destaque</h2>
+                    <p class="sub" data-i18n="featuredSub">Uma seleção dos nossos projetos.</p>
+                </div>
+            </div>
+
+            <div class="grid" id="featuredGrid"></div>
+
+        </section>
+
+        <!-- MODS -->
+
+        <section class="page" id="mods">
+
+            <div class="eyebrow">MR GREEN / MODS</div>
+
+            <h1 class="page-title" data-i18n="modsTitle">Mods</h1>
+
+            <p class="page-intro" data-i18n="modsIntro">
+                Modificações, novas ideias e experiências diferentes para jogos.
+            </p>
+
+            <div class="grid" id="modsGrid"></div>
+
+        </section>
+
+        <!-- REMAKES -->
+
+        <section class="page" id="remakes">
+
+            <div class="eyebrow">MR GREEN / REMAKES</div>
+
+            <h1 class="page-title" data-i18n="remakesTitle">Remakes</h1>
+
+            <p class="page-intro" data-i18n="remakesIntro">
+                Projetos inspirados em jogos que marcaram época, recriados com ideias e identidade próprias.
+            </p>
+
+            <div class="grid" id="remakesGrid"></div>
+
+        </section>
+
+        <!-- GAMES -->
+
+        <section class="page" id="games">
+
+            <div class="eyebrow">MR GREEN / GAMES</div>
+
+            <h1 class="page-title" data-i18n="gamesTitle">Jogos</h1>
+
+            <p class="page-intro" data-i18n="gamesIntro">
+                Conheça os jogos originais desenvolvidos pelo estúdio.
+            </p>
+
+            <div class="grid" id="gamesGrid"></div>
+
+        </section>
+
+        <!-- UPDATES -->
+
+        <section class="page" id="updates">
+
+            <div class="eyebrow">MR GREEN / NEWS</div>
+
+            <h1 class="page-title" data-i18n="updatesTitle">Atualizações</h1>
+
+            <p class="page-intro" data-i18n="updatesIntro">
+                Novidades, anúncios e registros do desenvolvimento.
+            </p>
+
+            <article class="update">
+
+                <time>04 NOV 2026</time>
+
+                <h3 data-i18n="updateOneTitle">
+                    O site do Mr Green Notebook Studios foi criado!
+                </h3>
+
+                <p data-i18n="updateOneText">
+                    Esta é a primeira versão do portal. Em breve, mais projetos e novidades serão adicionados.
+                </p>
+
+            </article>
+
+            <article class="update">
+
+                <time data-i18n="comingSoon">EM BREVE</time>
+
+                <h3 data-i18n="updateTwoTitle">Mais novidades chegando</h3>
+
+                <p data-i18n="updateTwoText">
+                    Acompanhe esta página para conhecer os próximos lançamentos.
+                </p>
+
+            </article>
+
+        </section>
+
+        <!-- ABOUT -->
+
+        <section class="page" id="about">
+
+            <div class="eyebrow">MR GREEN / ABOUT</div>
+
+            <h1 class="page-title" data-i18n="aboutTitle">Sobre o estúdio</h1>
+
+            <div class="about-box">
+
+                <h2 data-i18n="aboutHeading">Criatividade em cada projeto.</h2>
+
+                <p data-i18n="aboutText">
+                    Mr Green Notebook Studios é um espaço independente para criar jogos, mods e remakes. Este site reúne os projetos em um só lugar e será atualizado conforme novas experiências forem desenvolvidas.
+                </p>
+
+            </div>
+
+            <div class="about-box">
+
+                <h2 data-i18n="contactHeading">Contato e comunidade</h2>
+
+                <p data-i18n="contactText">
+                    Adicione aqui seus links oficiais, como YouTube, Roblox ou outras redes. Não coloque informações pessoais privadas.
+                </p>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <footer>
+
+        <div class="wrap footer-inner">
+
+            <span>
+                © 2026 MR GREEN NOTEBOOK STUDIOS.
+                <span data-i18n="rights">Todos os direitos reservados.</span>
+            </span>
+
+            <span data-i18n="footer">Feito com criatividade.</span>
+
+        </div>
+
+    </footer>
+
+    <script src="script.js"></script>
+
+</body>
+</html>
