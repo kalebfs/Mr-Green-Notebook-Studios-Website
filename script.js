@@ -4,7 +4,6 @@ console.log("MR GREEN: JavaScript carregado!");
 // TRANSLATIONS
 
 const translations = {
-
     pt: {
         navHome: 'Início',
         navMods: 'Mods',
@@ -114,13 +113,10 @@ const translations = {
         download: 'Download',
         comingSoonDownload: 'Coming Soon'
     }
-
 };
 
 
 // PROJECTS
-// Add or edit your projects here.
-
 
 const projects = [
 
@@ -129,12 +125,9 @@ const projects = [
         type: 'mods',
         icon: '📚',
         tag: 'Mod',
-
         image: 'images/baldi-mods.jpg',
-
         pc: '',
         mobile: '',
-
         desc: {
             pt: 'Uma nova experiência de Baldi’s Basics com mods e modificadores.',
             en: 'A new Baldi’s Basics experience with mods and modifiers.'
@@ -146,12 +139,9 @@ const projects = [
         type: 'remakes',
         icon: '🏚️',
         tag: 'Remake',
-
         image: 'images/granny-remake.jpg',
-
         pc: '',
         mobile: '',
-
         desc: {
             pt: 'Um projeto de remake de terror em desenvolvimento.',
             en: 'A horror remake project currently in development.'
@@ -163,12 +153,9 @@ const projects = [
         type: 'games',
         icon: '👁️',
         tag: 'Game',
-
         image: 'images/momo-horror.jpg',
-
         pc: '',
         mobile: '',
-
         desc: {
             pt: 'Um jogo original de terror desenvolvido pelo estúdio.',
             en: 'An original horror game developed by the studio.'
@@ -190,11 +177,7 @@ function projectCard(project, index) {
     const translation = translations[language];
 
     return `
-        <article class="card"
-            data-project-index="${index}"
-            tabindex="0"
-            role="button"
-            aria-label="${project.name}">
+        <article class="card" data-project-index="${index}">
 
             <div class="cover">
                 <span class="cover-icon">${project.icon}</span>
@@ -213,8 +196,8 @@ function projectCard(project, index) {
                     <span class="status">● ${translation.soon}</span>
 
                     <button class="project-link view-details" type="button">
-    View Details →
-</button>
+                        View Details →
+                    </button>
 
                 </div>
 
@@ -231,6 +214,8 @@ function renderProjects() {
 
     const featuredGrid = document.getElementById('featuredGrid');
 
+    if (!featuredGrid) return;
+
     featuredGrid.innerHTML = projects
         .map((project, index) => projectCard(project, index))
         .join('');
@@ -238,6 +223,8 @@ function renderProjects() {
     ['mods', 'remakes', 'games'].forEach(type => {
 
         const grid = document.getElementById(type + 'Grid');
+
+        if (!grid) return;
 
         const items = projects
             .map((project, index) => ({ project, index }))
@@ -257,15 +244,11 @@ function renderProjects() {
 function showPage(id) {
 
     document.querySelectorAll('.page').forEach(page => {
-
         page.classList.toggle('active', page.id === id);
-
     });
 
     document.querySelectorAll('.nav-btn').forEach(button => {
-
         button.classList.toggle('active', button.dataset.page === id);
-
     });
 
     history.replaceState(null, '', '#' + id);
@@ -283,27 +266,54 @@ function showPage(id) {
 document.querySelectorAll('.nav-btn').forEach(button => {
 
     button.addEventListener('click', () => {
-
         showPage(button.dataset.page);
-
     });
 
 });
 
 
-// PROJECT DETAILS MODAL
+// MODAL ELEMENTS
 
 const projectModal = document.getElementById('projectModal');
-
 const modalThumbnail = document.getElementById('modalThumbnail');
-
 const modalTitle = document.getElementById('modalTitle');
-
 const modalCategory = document.getElementById('modalCategory');
-
 const modalDescription = document.getElementById('modalDescription');
-
 const modalDownloads = document.getElementById('modalDownloads');
+
+
+// DOWNLOAD BUTTON CREATOR
+
+function createDownloadButton(platform, icon, url) {
+
+    const translation = translations[language];
+
+    if (!url) {
+
+        const unavailable = document.createElement('span');
+
+        unavailable.className = 'download-button disabled';
+
+        unavailable.textContent =
+            `${icon} ${platform} — ${translation.comingSoonDownload}`;
+
+        modalDownloads.appendChild(unavailable);
+
+        return;
+    }
+
+    const link = document.createElement('a');
+
+    link.className = 'download-button';
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+
+    link.textContent =
+        `${icon} ${platform} — ${translation.download}`;
+
+    modalDownloads.appendChild(link);
+}
 
 
 // OPEN PROJECT
@@ -314,15 +324,11 @@ function openProject(index) {
 
     const project = projects[index];
 
-    if (!project) return;
+    if (!project || !projectModal) return;
 
     modalTitle.textContent = project.name;
-
     modalCategory.textContent = project.tag.toUpperCase();
-
     modalDescription.textContent = project.desc[language];
-
-    // THUMBNAIL
 
     if (project.image) {
 
@@ -337,51 +343,10 @@ function openProject(index) {
 
     }
 
-    // DOWNLOAD BUTTONS
-
     modalDownloads.innerHTML = '';
 
-    const translation = translations[language];
-
-    function createDownloadButton(platform, icon, url) {
-
-        if (!url) {
-
-            const unavailable = document.createElement('span');
-
-            unavailable.className = 'download-button disabled';
-
-            unavailable.textContent =
-                `${icon} ${platform} — ${translation.comingSoonDownload}`;
-
-            modalDownloads.appendChild(unavailable);
-
-            return;
-
-        }
-
-        const link = document.createElement('a');
-
-        link.className = 'download-button';
-
-        link.href = url;
-
-        link.target = '_blank';
-
-        link.rel = 'noopener noreferrer';
-
-        link.textContent =
-            `${icon} ${platform} — ${translation.download}`;
-
-        modalDownloads.appendChild(link);
-
-    }
-
     createDownloadButton('PC', '💻', project.pc);
-
     createDownloadButton('Mobile', '📱', project.mobile);
-
-    // SHOW MODAL
 
     projectModal.classList.add('active');
 
@@ -394,6 +359,8 @@ function openProject(index) {
 
 function closeProject() {
 
+    if (!projectModal) return;
+
     projectModal.classList.remove('active');
 
     document.body.style.overflow = '';
@@ -401,58 +368,51 @@ function closeProject() {
 }
 
 
-// CLICK ON PROJECT CARDS
+// CLICK ON VIEW DETAILS
 
 document.addEventListener('click', function (event) {
 
     const button = event.target.closest('.view-details');
-    const card = event.target.closest('.card[data-project-index]');
 
-    if (button && card) {
-        event.preventDefault();
+    if (!button) return;
 
-        const index = Number(card.dataset.projectIndex);
+    event.preventDefault();
 
-        openProject(index);
-    }
-
-});
-
-// KEYBOARD SUPPORT FOR PROJECT CARDS
-
-document.addEventListener('keydown', event => {
-
-    const card = event.target.closest('[data-project-index]');
+    const card = button.closest('.card');
 
     if (!card) return;
 
-    if (event.key === 'Enter' || event.key === ' ') {
+    const index = Number(card.dataset.projectIndex);
 
-        event.preventDefault();
+    console.log("Botão clicado! Projeto:", index);
 
-        openProject(Number(card.dataset.projectIndex));
-
-    }
+    openProject(index);
 
 });
 
 
 // CLOSE BUTTON
 
-document.getElementById('closeProjectModal').addEventListener('click', closeProject);
+const closeProjectModal = document.getElementById('closeProjectModal');
+
+if (closeProjectModal) {
+    closeProjectModal.addEventListener('click', closeProject);
+}
 
 
 // CLICK OUTSIDE MODAL
 
-projectModal.addEventListener('click', event => {
+if (projectModal) {
 
-    if (event.target === projectModal) {
+    projectModal.addEventListener('click', event => {
 
-        closeProject();
+        if (event.target === projectModal) {
+            closeProject();
+        }
 
-    }
+    });
 
-});
+}
 
 
 // ESCAPE KEY
@@ -460,9 +420,7 @@ projectModal.addEventListener('click', event => {
 document.addEventListener('keydown', event => {
 
     if (event.key === 'Escape') {
-
         closeProject();
-
     }
 
 });
@@ -470,91 +428,60 @@ document.addEventListener('keydown', event => {
 
 // LANGUAGE BUTTON
 
-document.getElementById('langToggle').addEventListener('click', () => {
+const langToggle = document.getElementById('langToggle');
 
-    language = language === 'pt' ? 'en' : 'pt';
+if (langToggle) {
 
-    document.documentElement.lang =
-        language === 'pt' ? 'pt-BR' : 'en';
+    langToggle.addEventListener('click', () => {
 
-    document.querySelectorAll('[data-i18n]').forEach(element => {
+        language = language === 'pt' ? 'en' : 'pt';
 
-        const key = element.dataset.i18n;
+        document.documentElement.lang =
+            language === 'pt' ? 'pt-BR' : 'en';
 
-        if (translations[language][key]) {
+        document.querySelectorAll('[data-i18n]').forEach(element => {
 
-            element.textContent = translations[language][key];
+            const key = element.dataset.i18n;
+
+            if (translations[language][key]) {
+                element.textContent = translations[language][key];
+            }
+
+        });
+
+        langToggle.textContent =
+            language === 'pt' ? 'EN' : 'PT';
+
+        renderProjects();
+
+        // Update open modal
+
+        if (projectModal && projectModal.classList.contains('active')) {
+
+            const currentProject = projects.find(
+                project => project.name === modalTitle.textContent
+            );
+
+            if (currentProject) {
+
+                modalDescription.textContent =
+                    currentProject.desc[language];
+
+                modalCategory.textContent =
+                    currentProject.tag.toUpperCase();
+
+                modalDownloads.innerHTML = '';
+
+                createDownloadButton('PC', '💻', currentProject.pc);
+                createDownloadButton('Mobile', '📱', currentProject.mobile);
+
+            }
 
         }
 
     });
 
-    document.getElementById('langToggle').textContent =
-        language === 'pt' ? 'EN' : 'PT';
-
-    renderProjects();
-
-    // Update an open project modal
-
-    if (projectModal.classList.contains('active')) {
-
-        const currentProject = projects.find(
-            project => project.name === modalTitle.textContent
-        );
-
-        if (currentProject) {
-
-            modalDescription.textContent =
-                currentProject.desc[language];
-
-            modalCategory.textContent =
-                currentProject.tag.toUpperCase();
-
-            modalDownloads.innerHTML = '';
-
-            function createUpdatedButton(platform, icon, url) {
-
-                if (!url) {
-
-                    const unavailable = document.createElement('span');
-
-                    unavailable.className = 'download-button disabled';
-
-                    unavailable.textContent =
-                        `${icon} ${platform} — ${translations[language].comingSoonDownload}`;
-
-                    modalDownloads.appendChild(unavailable);
-
-                    return;
-
-                }
-
-                const link = document.createElement('a');
-
-                link.className = 'download-button';
-
-                link.href = url;
-
-                link.target = '_blank';
-
-                link.rel = 'noopener noreferrer';
-
-                link.textContent =
-                    `${icon} ${platform} — ${translations[language].download}`;
-
-                modalDownloads.appendChild(link);
-
-            }
-
-            createUpdatedButton('PC', '💻', currentProject.pc);
-
-            createUpdatedButton('Mobile', '📱', currentProject.mobile);
-
-        }
-
-    }
-
-});
+}
 
 
 // INITIAL PAGE
@@ -571,12 +498,12 @@ const validPages = [
 ];
 
 if (validPages.includes(initialPage)) {
-
     showPage(initialPage);
-
 }
 
 
 // INITIAL RENDER
 
 renderProjects();
+
+console.log("MR GREEN: Site inicializado!");
