@@ -10,7 +10,7 @@
 
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="stylesheet" href="style.css?v=11">
-    <script src="script.js?v=12" defer></script>
+    <script type="module" src="script.js?v=13"></script>
 </head>
 
 <body>
@@ -117,20 +117,50 @@
         <section class="page" id="updates">
 
             <div class="eyebrow">MR GREEN / NEWS</div>
-            <h1 class="page-title" data-i18n="updatesTitle">Atualizações</h1>
-            <p class="page-intro" data-i18n="updatesIntro"></p>
 
-            <article class="update">
-                <time>04 NOV 2026</time>
-                <h3 data-i18n="updateOneTitle">O site do Mr Green Notebook Studios foi criado!</h3>
-                <p data-i18n="updateOneText"></p>
-            </article>
+            <h1 class="page-title" data-i18n="updatesTitle">
+                Atualizações
+            </h1>
 
-            <article class="update">
-                <time data-i18n="comingSoon">EM BREVE</time>
-                <h3 data-i18n="updateTwoTitle">Mais novidades chegando</h3>
-                <p data-i18n="updateTwoText"></p>
-            </article>
+            <p class="page-intro" data-i18n="updatesIntro">
+                Novidades, anúncios e registros do desenvolvimento.
+            </p>
+
+            <div class="updates-toolbar">
+
+                <button id="adminLoginButton" class="secondary" type="button">
+                    Admin Login
+                </button>
+
+                <button id="createUpdateButton" class="primary" type="button" hidden>
+                    + Create an Update
+                </button>
+
+                <button id="adminLogoutButton" class="secondary" type="button" hidden>
+                    Logout
+                </button>
+
+            </div>
+
+            <div id="updatesList">
+
+                <article class="update">
+                    <time>04 NOV 2026</time>
+                    <h3 data-i18n="updateOneTitle">
+                        O site do Mr Green Notebook Studios foi criado!
+                    </h3>
+                    <p data-i18n="updateOneText"></p>
+                </article>
+
+                <article class="update">
+                    <time data-i18n="comingSoon">EM BREVE</time>
+                    <h3 data-i18n="updateTwoTitle">
+                        Mais novidades chegando
+                    </h3>
+                    <p data-i18n="updateTwoText"></p>
+                </article>
+
+            </div>
 
         </section>
 
@@ -153,6 +183,97 @@
         </section>
 
     </main>
+
+    <!-- ADMIN LOGIN -->
+    <dialog class="project-dialog" id="adminLoginDialog">
+
+        <div class="dialog-content">
+
+            <button class="modal-close" id="closeAdminLogin" type="button">
+                ×
+            </button>
+
+            <div class="dialog-details">
+
+                <span class="eyebrow">MR GREEN / ADMIN</span>
+
+                <h2>Administrator Login</h2>
+
+                <form id="adminLoginForm">
+
+                    <input type="email"
+                           id="adminEmail"
+                           placeholder="E-mail"
+                           autocomplete="username"
+                           required>
+
+                    <input type="password"
+                           id="adminPassword"
+                           placeholder="Password"
+                           autocomplete="current-password"
+                           required>
+
+                    <p id="loginError" role="alert"></p>
+
+                    <button class="primary" type="submit">
+                        Login
+                    </button>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    </dialog>
+
+
+    <!-- CREATE UPDATE -->
+    <dialog class="project-dialog" id="updateEditorDialog">
+
+        <div class="dialog-content">
+
+            <button class="modal-close" id="closeUpdateEditor" type="button">
+                ×
+            </button>
+
+            <div class="dialog-details">
+
+                <span class="eyebrow">MR GREEN / NEW UPDATE</span>
+
+                <h2>Create an Update</h2>
+
+                <form id="updateForm">
+
+                    <input type="text"
+                           id="updateTitle"
+                           placeholder="Update title"
+                           maxlength="100"
+                           required>
+
+                    <textarea id="updateDescription"
+                              placeholder="Update description"
+                              maxlength="2000"
+                              rows="5"
+                              required></textarea>
+
+                    <input type="date"
+                           id="updateDate"
+                           required>
+
+                    <p id="updateError" role="alert"></p>
+
+                    <button class="primary" type="submit">
+                        Publish Update
+                    </button>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    </dialog>
 
     <!-- PROJECT DETAILS -->
     <dialog class="project-dialog" id="projectDialog">
