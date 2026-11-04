@@ -1,4 +1,43 @@
 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
+
+import {
+    getAuth,
+    onAuthStateChanged,
+    signInWithEmailAndPassword,
+    signOut
+} from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
+
+import {
+    getFirestore,
+    collection,
+    addDoc,
+    onSnapshot,
+    query,
+    orderBy,
+    serverTimestamp
+} from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
+
+
+/* =========================
+   FIREBASE CONFIGURATION
+========================= */
+
+const firebaseConfig = {
+    apiKey: "AIzaSyADRGeBqk6dXcfO5dta9rd-V0mnzTn6cfg",
+    authDomain: "mr-green-notebook-studios.firebaseapp.com",
+    projectId: "mr-green-notebook-studios",
+    storageBucket: "mr-green-notebook-studios.firebasestorage.app",
+    messagingSenderId: "256162765324",
+    appId: "1:256162765324:web:25ec3353400d337fb06c29"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const ADMIN_UID = "Qouhq47ZojcixHwiXkfmXwfT2xe2";
+
 "use strict";
 
 /* =========================
@@ -495,6 +534,203 @@ dialog.addEventListener("click", event => {
     if (event.target === dialog) {
         closeProject();
     }
+});
+
+/* =========================
+   ADMIN LOGIN
+========================= */
+
+adminLoginButton.addEventListener("click", () => {
+    loginError.textContent = "";
+    adminLoginDialog.showModal();
+});
+
+closeAdminLogin.addEventListener("click", () => {
+    adminLoginDialog.close();
+});
+
+adminLoginDialog.addEventListener("click", event => {
+    if (event.target === adminLoginDialog) {
+        adminLoginDialog.close();
+    }
+});
+
+adminLoginForm.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    loginError.textContent = "";
+
+    try {
+        const result = await signInWithEmailAndPassword(
+            auth,
+            adminEmail.value.trim(),
+            adminPassword.value
+        );
+
+        if (result.user.uid !== ADMIN_UID) {
+            await signOut(auth);
+            throw new Error("Unauthorized account.");
+        }
+
+        adminLoginForm.reset();
+        adminLoginDialog.close();
+
+    } catch (error) {
+        console.error("Admin login error:", error);
+
+        loginError.textContent =
+            "Login failed. Check your email and password.";
+    }
+});
+
+
+/* =========================
+   ADMIN AUTH STATE
+========================= */
+
+onAuthStateChanged(auth, user => {
+    isAdmin = !!user && user.uid === ADMIN_UID;
+
+    adminLoginButton.hidden = isAdmin;
+    createUpdateButton.hidden = !isAdmin;
+    adminLogoutButton.hidden = !isAdmin;
+
+    renderFirestoreUpdates();
+});
+
+
+/* =========================
+   ADMIN LOGOUT
+========================= */
+
+adminLogoutButton.addEventListener("click", async () => {
+    try {
+        await signOut(auth);
+    } catch (error) {
+        console.error("Logout error:", error);
+    }
+});
+
+
+/* =========================
+   OPEN UPDATE EDITOR
+========================= */
+
+function getLocalDate() {
+    const now = new Date();
+
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+
+createUpdateButton.addEventListener("click", () => {
+    updateError.textContent = "";
+    updateDate.value = getLocalDate();
+
+    updateEditorDialog.showModal();
+});
+
+closeUpdateEditor.addEventListener("click", () => {
+    updateEditorDialog.close();
+});
+
+/* =========================
+   CREATE UPDATE
+========================= */
+
+updateForm.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    updateError.textContent = "";
+
+    if (!auth.currentUser || auth.currentUser.uid !== ADMIN_UID) {
+        updateError.textContent = "Administrator access required.";
+        return;
+    }
+
+    try {
+        await addDoc(collection(db, "updates"), {
+            title: updateTitle.value.trim(),
+            description: updateDescription.value.trim(),
+            date: updateDate.value,
+            createdAt: serverTimestamp()
+        });
+
+        updateForm.reset();
+        updateEditorDialog.close();
+
+    } catch (error) {
+        console.error("Update publishing error:", error);
+
+        updateError.textContent =
+            "Could not publish. Check your Firebase connection and permissions.";
+    }
+});
+
+/* =========================
+   RENDER FIRESTORE UPDATES
+========================= */
+
+function renderFirestoreUpdates() {
+    if (!updatesList) return;
+
+    updatesList.querySelectorAll("[data-firestore-update]").forEach(element => {
+        element.remove();
+    });
+
+    latestUpdates.forEach(update => {
+        const article = document.createElement("article");
+        article.className = "update";
+        article.dataset.firestoreUpdate = "true";
+
+        const time = document.createElement("time");
+
+        const date = new Date(`${update.date}T12:00:00`);
+
+        time.textContent = date.toLocaleDateString(
+            language === "pt" ? "pt-BR" : "en-US",
+            {
+                day: "2-digit",
+                month: "short",
+                year: "numeric"
+            }
+        );
+
+        const title = document.createElement("h3");
+        title.textContent = update.title;
+
+        const description = document.createElement("p");
+        description.textContent = update.description;
+
+        article.append(time, title, description);
+
+        updatesList.appendChild(article);
+    });
+}
+
+
+/* =========================
+   FIRESTORE LISTENER
+========================= */
+
+const updatesQuery = query(
+    collection(db, "updates"),
+    orderBy("createdAt", "desc")
+);
+
+onSnapshot(updatesQuery, snapshot => {
+    latestUpdates = snapshot.docs.map(document => ({
+        id: document.id,
+        ...document.data()
+    }));
+
+    renderFirestoreUpdates();
+
+}, error => {
+    console.error("Could not load updates:", error);
 });
 
 
