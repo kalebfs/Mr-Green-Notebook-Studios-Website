@@ -18,6 +18,8 @@ import {
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
 
+"use strict";
+
 
 /* =========================
    FIREBASE CONFIGURATION
@@ -38,7 +40,6 @@ const db = getFirestore(app);
 
 const ADMIN_UID = "Qouhq47ZojcixHwiXkfmXwfT2xe2";
 
-"use strict";
 
 /* =========================
    TRANSLATIONS
@@ -222,6 +223,9 @@ const projects = [
 let language = "pt";
 let currentProjectIndex = null;
 
+let isAdmin = false;
+let latestUpdates = [];
+
 
 /* =========================
    ELEMENTS
@@ -233,29 +237,36 @@ const dialogTitle = document.getElementById("dialogTitle");
 const dialogCategory = document.getElementById("dialogCategory");
 const dialogDescription = document.getElementById("dialogDescription");
 const dialogDownloads = document.getElementById("dialogDownloads");
+
 const langToggle = document.getElementById("langToggle");
 const closeDialogButton = document.getElementById("closeDialog");
-/* =========================
-   ADMIN LOGIN DIALOG
-========================= */
+
+/* Admin elements */
 
 const adminLoginButton = document.getElementById("adminLoginButton");
+const adminLogoutButton = document.getElementById("adminLogoutButton");
+const createUpdateButton = document.getElementById("createUpdateButton");
+
 const adminLoginDialog = document.getElementById("adminLoginDialog");
+const updateEditorDialog = document.getElementById("updateEditorDialog");
+
 const closeAdminLogin = document.getElementById("closeAdminLogin");
+const closeUpdateEditor = document.getElementById("closeUpdateEditor");
 
-adminLoginButton.addEventListener("click", () => {
-    adminLoginDialog.showModal();
-});
+const adminLoginForm = document.getElementById("adminLoginForm");
+const updateForm = document.getElementById("updateForm");
 
-closeAdminLogin.addEventListener("click", () => {
-    adminLoginDialog.close();
-});
+const adminEmail = document.getElementById("adminEmail");
+const adminPassword = document.getElementById("adminPassword");
 
-adminLoginDialog.addEventListener("click", event => {
-    if (event.target === adminLoginDialog) {
-        adminLoginDialog.close();
-    }
-});
+const loginError = document.getElementById("loginError");
+const updateError = document.getElementById("updateError");
+
+const updateTitle = document.getElementById("updateTitle");
+const updateDescription = document.getElementById("updateDescription");
+const updateDate = document.getElementById("updateDate");
+
+const updatesList = document.getElementById("updatesList");
 
 
 /* =========================
@@ -404,7 +415,6 @@ function renderGrid(gridId, items) {
     });
 }
 
-
 function renderProjects() {
     const indexedProjects = projects.map((project, index) => ({
         project,
@@ -437,7 +447,6 @@ function renderProjects() {
 function createDownloadButton(platform, url) {
     const text = translations[language];
 
-    // Never available
     if (typeof url === "string" && url.trim().toLowerCase() === "never") {
         const unavailable = document.createElement("span");
 
@@ -448,7 +457,6 @@ function createDownloadButton(platform, url) {
         return unavailable;
     }
 
-    // Coming soon
     if (!url) {
         const unavailable = document.createElement("span");
 
@@ -459,7 +467,6 @@ function createDownloadButton(platform, url) {
         return unavailable;
     }
 
-    // Available download
     const link = document.createElement("a");
 
     link.className = "download-button";
@@ -528,61 +535,88 @@ function closeProject() {
     currentProjectIndex = null;
 }
 
-closeDialogButton.addEventListener("click", closeProject);
+if (closeDialogButton) {
+    closeDialogButton.addEventListener("click", closeProject);
+}
 
-dialog.addEventListener("click", event => {
-    if (event.target === dialog) {
-        closeProject();
-    }
-});
+if (dialog) {
+    dialog.addEventListener("click", event => {
+        if (event.target === dialog) {
+            closeProject();
+        }
+    });
+}
+
 
 /* =========================
    ADMIN LOGIN
 ========================= */
 
-adminLoginButton.addEventListener("click", () => {
-    loginError.textContent = "";
-    adminLoginDialog.showModal();
-});
-
-closeAdminLogin.addEventListener("click", () => {
-    adminLoginDialog.close();
-});
-
-adminLoginDialog.addEventListener("click", event => {
-    if (event.target === adminLoginDialog) {
-        adminLoginDialog.close();
-    }
-});
-
-adminLoginForm.addEventListener("submit", async event => {
-    event.preventDefault();
-
-    loginError.textContent = "";
-
-    try {
-        const result = await signInWithEmailAndPassword(
-            auth,
-            adminEmail.value.trim(),
-            adminPassword.value
-        );
-
-        if (result.user.uid !== ADMIN_UID) {
-            await signOut(auth);
-            throw new Error("Unauthorized account.");
+if (adminLoginButton && adminLoginDialog) {
+    adminLoginButton.addEventListener("click", () => {
+        if (loginError) {
+            loginError.textContent = "";
         }
 
-        adminLoginForm.reset();
+        adminLoginDialog.showModal();
+    });
+}
+
+if (closeAdminLogin && adminLoginDialog) {
+    closeAdminLogin.addEventListener("click", () => {
         adminLoginDialog.close();
+    });
 
-    } catch (error) {
-        console.error("Admin login error:", error);
-        alert(error.code + " - " + error.message);
+    adminLoginDialog.addEventListener("click", event => {
+        if (event.target === adminLoginDialog) {
+            adminLoginDialog.close();
+        }
+    });
+}
 
-        loginError.textContent =
-            "Login failed. Check your email and password.";
-    }
-});
+
+/* =========================
+   ADMIN LOGIN FORM
+========================= */
+
+if (adminLoginForm) {
+    adminLoginForm.addEventListener("submit", async event => {
+        event.preventDefault();
+
+        if (loginError) {
+            loginError.textContent = "";
+        }
+
+        try {
+            const result = await signInWithEmailAndPassword(
+                auth,
+                adminEmail.value.trim(),
+                adminPassword.value
+            );
+
+            if (result.user.uid !== ADMIN_UID) {
+                await signOut(auth);
+                throw new Error("Unauthorized account.");
+            }
+
+            adminLoginForm.reset();
+
+            if (adminLoginDialog) {
+                adminLoginDialog.close();
+            }
+
+        } catch (error) {
+            console.error("Admin login error:", error);
+
+            if (loginError) {
+                loginError.textContent =
+                    "Login failed. Check your email and password.";
+            }
+
+            alert(error.code || error.message);
+        }
+    });
+}
 
 
 /* =========================
@@ -596,11 +630,17 @@ onAuthStateChanged(auth, user => {
     console.log("UID:", user?.uid);
     console.log("É administrador:", isAdmin);
 
-    adminLoginButton.hidden = isAdmin;
-    createUpdateButton.hidden = !isAdmin;
-    adminLogoutButton.hidden = !isAdmin;
+    if (adminLoginButton) {
+        adminLoginButton.hidden = isAdmin;
+    }
 
-    renderFirestoreUpdates();
+    if (createUpdateButton) {
+        createUpdateButton.hidden = !isAdmin;
+    }
+
+    if (adminLogoutButton) {
+        adminLogoutButton.hidden = !isAdmin;
+    }
 });
 
 
@@ -608,13 +648,15 @@ onAuthStateChanged(auth, user => {
    ADMIN LOGOUT
 ========================= */
 
-adminLogoutButton.addEventListener("click", async () => {
-    try {
-        await signOut(auth);
-    } catch (error) {
-        console.error("Logout error:", error);
-    }
-});
+if (adminLogoutButton) {
+    adminLogoutButton.addEventListener("click", async () => {
+        try {
+            await signOut(auth);
+        } catch (error) {
+            console.error("Logout error:", error);
+        }
+    });
+}
 
 
 /* =========================
@@ -631,56 +673,81 @@ function getLocalDate() {
     return `${year}-${month}-${day}`;
 }
 
-createUpdateButton.addEventListener("click", () => {
-    updateError.textContent = "";
-    updateDate.value = getLocalDate();
+if (createUpdateButton && updateEditorDialog) {
+    createUpdateButton.addEventListener("click", () => {
+        if (updateError) {
+            updateError.textContent = "";
+        }
 
-    updateEditorDialog.showModal();
-});
+        if (updateDate) {
+            updateDate.value = getLocalDate();
+        }
 
-closeUpdateEditor.addEventListener("click", () => {
-    updateEditorDialog.close();
-});
+        updateEditorDialog.showModal();
+    });
+}
+
+if (closeUpdateEditor && updateEditorDialog) {
+    closeUpdateEditor.addEventListener("click", () => {
+        updateEditorDialog.close();
+    });
+}
+
 
 /* =========================
    CREATE UPDATE
 ========================= */
 
-updateForm.addEventListener("submit", async event => {
-    event.preventDefault();
+if (updateForm) {
+    updateForm.addEventListener("submit", async event => {
+        event.preventDefault();
 
-    updateError.textContent = "";
+        if (updateError) {
+            updateError.textContent = "";
+        }
 
-    if (!auth.currentUser || auth.currentUser.uid !== ADMIN_UID) {
-        updateError.textContent = "Administrator access required.";
-        return;
-    }
+        if (!auth.currentUser || auth.currentUser.uid !== ADMIN_UID) {
+            if (updateError) {
+                updateError.textContent = "Administrator access required.";
+            }
 
-    try {
-        await addDoc(collection(db, "updates"), {
-            title: updateTitle.value.trim(),
-            description: updateDescription.value.trim(),
-            date: updateDate.value,
-            createdAt: serverTimestamp()
-        });
+            return;
+        }
 
-        updateForm.reset();
-        updateEditorDialog.close();
+        try {
+            await addDoc(collection(db, "updates"), {
+                title: updateTitle.value.trim(),
+                description: updateDescription.value.trim(),
+                date: updateDate.value,
+                createdAt: serverTimestamp()
+            });
 
-    } catch (error) {
-        console.error("Update publishing error:", error);
+            updateForm.reset();
 
-        updateError.textContent =
-            "Could not publish. Check your Firebase connection and permissions.";
-    }
-});
+            if (updateEditorDialog) {
+                updateEditorDialog.close();
+            }
+
+        } catch (error) {
+            console.error("Update publishing error:", error);
+
+            if (updateError) {
+                updateError.textContent =
+                    "Could not publish. Check your Firebase connection and permissions.";
+            }
+        }
+    });
+}
+
 
 /* =========================
    RENDER FIRESTORE UPDATES
 ========================= */
 
 function renderFirestoreUpdates() {
-    if (!updatesList) return;
+    if (!updatesList) {
+        return;
+    }
 
     updatesList.querySelectorAll("[data-firestore-update]").forEach(element => {
         element.remove();
@@ -726,17 +793,24 @@ const updatesQuery = query(
     orderBy("createdAt", "desc")
 );
 
-onSnapshot(updatesQuery, snapshot => {
-    latestUpdates = snapshot.docs.map(document => ({
-        id: document.id,
-        ...document.data()
-    }));
+onSnapshot(
+    updatesQuery,
 
-    renderFirestoreUpdates();
+    snapshot => {
+        latestUpdates = snapshot.docs.map(document => ({
+            id: document.id,
+            ...document.data()
+        }));
 
-}, error => {
-    console.error("Could not load updates:", error);
-});
+        renderFirestoreUpdates();
+
+        console.log("MR GREEN: Atualizações carregadas:", latestUpdates.length);
+    },
+
+    error => {
+        console.error("Could not load updates:", error);
+    }
+);
 
 
 /* =========================
@@ -758,16 +832,21 @@ function changeLanguage() {
         }
     });
 
-    langToggle.textContent = language === "pt" ? "EN" : "PT";
+    if (langToggle) {
+        langToggle.textContent = language === "pt" ? "EN" : "PT";
+    }
 
     renderProjects();
+    renderFirestoreUpdates();
 
-    if (currentProjectIndex !== null && dialog.open) {
+    if (currentProjectIndex !== null && dialog && dialog.open) {
         openProject(currentProjectIndex);
     }
 }
 
-langToggle.addEventListener("click", changeLanguage);
+if (langToggle) {
+    langToggle.addEventListener("click", changeLanguage);
+}
 
 
 /* =========================
@@ -829,11 +908,3 @@ function initializeWebsite() {
 }
 
 initializeWebsite();
-
-console.log("Botão encontrado:", adminLoginButton);
-console.log("Janela encontrada:", adminLoginDialog);
-
-adminLoginButton.addEventListener("click", () => {
-    console.log("BOTÃO CLICADO!");
-    adminLoginDialog.showModal();
-});
