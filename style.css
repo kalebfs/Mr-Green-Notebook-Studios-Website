@@ -499,4 +499,18 @@ footer {
         min-height: 12px !important;
         object-fit: contain !important;
     }
+
+    .brand-mark {
+        width: 39px !important;
+        height: 39px !important;
+        overflow: hidden !important;
+    }
+
+        .brand-mark img {
+            width: 20px !important;
+            height: 20px !important;
+            max-width: 20px !important;
+            max-height: 20px !important;
+            object-fit: contain !important;
+        }
 }
