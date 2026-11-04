@@ -491,14 +491,10 @@ footer {
     }
 
     header .brand .brand-mark img {
-        display: block !important;
-        width: 32px !important;
-        height: 32px !important;
-        min-width: 32px !important;
-        min-height: 32px !important;
-        max-width: 32px !important;
-        max-height: 32px !important;
-        object-fit: contain !important;
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        border-radius: inherit;
     }
 
     header .brand .brand-mark {
