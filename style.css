@@ -501,13 +501,14 @@ footer {
         object-fit: contain !important;
     }
 
-    header .brand .brand-mark {
-        width: 39px !important;
-        height: 39px !important;
-        min-width: 39px !important;
-        min-height: 39px !important;
-        display: grid !important;
-        place-items: center !important;
-        overflow: hidden !important;
+    header .brand .brand-mark img {
+        display: block !important;
+        width: 24px !important;
+        height: 24px !important;
+        min-width: 24px !important;
+        min-height: 24px !important;
+        max-width: 24px !important;
+        max-height: 24px !important;
+        object-fit: contain !important;
     }
 }
