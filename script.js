@@ -591,6 +591,10 @@ adminLoginForm.addEventListener("submit", async event => {
 onAuthStateChanged(auth, user => {
     isAdmin = !!user && user.uid === ADMIN_UID;
 
+    console.log("Usuário conectado:", user);
+    console.log("UID:", user?.uid);
+    console.log("É administrador:", isAdmin);
+
     adminLoginButton.hidden = isAdmin;
     createUpdateButton.hidden = !isAdmin;
     adminLogoutButton.hidden = !isAdmin;
