@@ -491,26 +491,23 @@ footer {
     }
 
     header .brand .brand-mark img {
+        display: block !important;
         width: 12px !important;
         height: 12px !important;
-        max-width: 12px !important;
-        max-height: 12px !important;
         min-width: 12px !important;
         min-height: 12px !important;
+        max-width: 12px !important;
+        max-height: 12px !important;
         object-fit: contain !important;
     }
 
-    .brand-mark {
+    header .brand .brand-mark {
         width: 39px !important;
         height: 39px !important;
+        min-width: 39px !important;
+        min-height: 39px !important;
+        display: grid !important;
+        place-items: center !important;
         overflow: hidden !important;
     }
-
-        .brand-mark img {
-            width: 20px !important;
-            height: 20px !important;
-            max-width: 20px !important;
-            max-height: 20px !important;
-            object-fit: contain !important;
-        }
 }
