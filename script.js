@@ -58,6 +58,7 @@ const translations = {
         downloadTitle: "Links para download:",
         download: "Download",
         comingSoonDownload: "Em breve",
+        unavailable: "Não disponível",
         viewDetails: "Ver detalhes"
     },
 
@@ -113,6 +114,7 @@ const translations = {
         downloadTitle: "Download links:",
         download: "Download",
         comingSoonDownload: "Coming Soon",
+        unavailable: "Not available",
         viewDetails: "View Details"
     }
 };
@@ -129,11 +131,11 @@ const projects = [
         icon: "",
         tag: "Mod",
         image: "images/baldi-mods.jpg",
-        pc: "",
-        mobile: "",
+        pc: "https://github.com/kalebfs/Mr-Green-Notebook-Studios-Website/releases/download/V1.6/baldi_s_basics_remagined_v16.rar",
+        mobile: "never",
         desc: {
-            pt: "Uma nova experiência de Baldi’s Basics com mods e modificadores.",
-            en: "A new Baldi’s Basics experience with mods and modifiers."
+            pt: "Um de Baldi’s Basics com mods e modificadores e muito mais! tenha diversão.",
+            en: "A  Baldi’s Basics mod by mr green notebook studio with modifiers and more! have fun."
         }
     },
 
@@ -382,8 +384,7 @@ function createDownloadButton(platform, url) {
 
     link.className = "download-button";
     link.href = url;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
+    link.download = "";
     link.textContent = `${platform} — ${text.download}`;
 
     return link;
