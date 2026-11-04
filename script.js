@@ -1,4 +1,6 @@
 
+console.log("MR GREEN: JavaScript carregado!");
+
 // TRANSLATIONS
 
 const translations = {
