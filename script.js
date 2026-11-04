@@ -1,9 +1,8 @@
-
 "use strict";
 
-console.log("MR GREEN: Website iniciado!");
-
-// TRANSLATIONS
+/* =========================
+   TRANSLATIONS
+========================= */
 
 const translations = {
     pt: {
@@ -55,7 +54,7 @@ const translations = {
         soon: "EM DESENVOLVIMENTO",
         empty: "Nenhum projeto adicionado aqui ainda.",
 
-        downloadTitle: "Download Links:",
+        downloadTitle: "Links para download:",
         download: "Download",
         comingSoonDownload: "Em breve",
         viewDetails: "Ver detalhes"
@@ -110,7 +109,7 @@ const translations = {
         soon: "IN DEVELOPMENT",
         empty: "No projects added here yet.",
 
-        downloadTitle: "Download Links:",
+        downloadTitle: "Download links:",
         download: "Download",
         comingSoonDownload: "Coming Soon",
         viewDetails: "View Details"
@@ -118,7 +117,9 @@ const translations = {
 };
 
 
-// PROJECTS
+/* =========================
+   PROJECTS
+========================= */
 
 const projects = [
     {
@@ -165,12 +166,17 @@ const projects = [
 ];
 
 
-// STATE
+/* =========================
+   STATE
+========================= */
 
 let language = "pt";
+let currentProjectIndex = null;
 
 
-// ELEMENTS
+/* =========================
+   ELEMENTS
+========================= */
 
 const dialog = document.getElementById("projectDialog");
 const dialogImage = document.getElementById("dialogImage");
@@ -178,24 +184,42 @@ const dialogTitle = document.getElementById("dialogTitle");
 const dialogCategory = document.getElementById("dialogCategory");
 const dialogDescription = document.getElementById("dialogDescription");
 const dialogDownloads = document.getElementById("dialogDownloads");
+const langToggle = document.getElementById("langToggle");
+const closeDialogButton = document.getElementById("closeDialog");
 
 
-// PAGE NAVIGATION
+/* =========================
+   PAGE NAVIGATION
+========================= */
 
-function showPage(pageId) {
-    const page = document.getElementById(pageId);
+const validPages = [
+    "home",
+    "mods",
+    "remakes",
+    "games",
+    "updates",
+    "about"
+];
 
-    if (!page) return;
+function showPage(pageId, updateHistory = true) {
+    if (!validPages.includes(pageId)) {
+        pageId = "home";
+    }
 
     document.querySelectorAll(".page").forEach(section => {
         section.classList.toggle("active", section.id === pageId);
     });
 
     document.querySelectorAll(".nav-btn").forEach(button => {
-        button.classList.toggle("active", button.dataset.page === pageId);
+        button.classList.toggle(
+            "active",
+            button.dataset.page === pageId
+        );
     });
 
-    history.replaceState(null, "", "#" + pageId);
+    if (updateHistory && location.hash !== `#${pageId}`) {
+        history.pushState(null, "", `#${pageId}`);
+    }
 
     window.scrollTo({
         top: 0,
@@ -204,7 +228,9 @@ function showPage(pageId) {
 }
 
 
-// PROJECT CARD
+/* =========================
+   PROJECT CARD
+========================= */
 
 function createProjectCard(project, index) {
     const card = document.createElement("article");
@@ -215,6 +241,7 @@ function createProjectCard(project, index) {
 
     if (project.image) {
         const image = document.createElement("img");
+
         image.src = project.image;
         image.alt = project.name;
         image.loading = "lazy";
@@ -250,9 +277,10 @@ function createProjectCard(project, index) {
 
     const status = document.createElement("span");
     status.className = "status";
-    status.textContent = "● " + translations[language].soon;
+    status.textContent = `● ${translations[language].soon}`;
 
     const details = document.createElement("button");
+
     details.type = "button";
     details.className = "project-link";
     details.textContent = translations[language].viewDetails;
@@ -269,27 +297,40 @@ function createProjectCard(project, index) {
 }
 
 
-// RENDER PROJECTS
+/* =========================
+   RENDER PROJECTS
+========================= */
 
 function renderGrid(gridId, items) {
     const grid = document.getElementById(gridId);
 
-    if (!grid) return;
+    if (!grid) {
+        console.warn(`Grid not found: ${gridId}`);
+        return;
+    }
 
     grid.replaceChildren();
 
     if (items.length === 0) {
         const empty = document.createElement("div");
+
         empty.className = "empty";
         empty.textContent = translations[language].empty;
+
         grid.appendChild(empty);
         return;
     }
 
     items.forEach(item => {
-        grid.appendChild(createProjectCard(item.project, item.index));
+        const card = createProjectCard(
+            item.project,
+            item.index
+        );
+
+        grid.appendChild(card);
     });
 }
+
 
 function renderProjects() {
     const indexedProjects = projects.map((project, index) => ({
@@ -316,52 +357,66 @@ function renderProjects() {
 }
 
 
-// DOWNLOAD BUTTONS
+/* =========================
+   DOWNLOAD BUTTONS
+========================= */
 
 function createDownloadButton(platform, icon, url) {
-    const translation = translations[language];
+    const text = translations[language];
 
     if (!url) {
         const unavailable = document.createElement("span");
+
         unavailable.className = "download-button disabled";
         unavailable.textContent =
-            `${icon} ${platform} — ${translation.comingSoonDownload}`;
+            `${icon} ${platform} — ${text.comingSoonDownload}`;
 
         return unavailable;
     }
 
     const link = document.createElement("a");
+
     link.className = "download-button";
     link.href = url;
     link.target = "_blank";
     link.rel = "noopener noreferrer";
-    link.textContent = `${icon} ${platform} — ${translation.download}`;
+    link.textContent = `${icon} ${platform} — ${text.download}`;
 
     return link;
 }
 
 
-// OPEN PROJECT
+/* =========================
+   OPEN PROJECT
+========================= */
 
 function openProject(index) {
     const project = projects[index];
 
-    if (!project) return;
+    if (!project || !dialog) {
+        return;
+    }
+
+    currentProjectIndex = index;
 
     dialogTitle.textContent = project.name;
     dialogCategory.textContent = project.tag.toUpperCase();
     dialogDescription.textContent = project.desc[language];
 
-    dialogImage.onerror = () => {
-        dialogImage.style.display = "none";
-    };
+    dialogImage.hidden = true;
+    dialogImage.removeAttribute("src");
 
     dialogImage.onload = () => {
-        dialogImage.style.display = "block";
+        dialogImage.hidden = false;
     };
 
-    dialogImage.style.display = "block";
-    dialogImage.src = project.image || "";
+    dialogImage.onerror = () => {
+        dialogImage.hidden = true;
+    };
+
+    if (project.image) {
+        dialogImage.src = project.image;
+    }
 
     dialogDownloads.replaceChildren();
 
@@ -376,28 +431,19 @@ function openProject(index) {
 }
 
 
-// CLOSE PROJECT
+/* =========================
+   CLOSE PROJECT
+========================= */
 
 function closeProject() {
-    if (dialog.open) {
+    if (dialog && dialog.open) {
         dialog.close();
     }
+
+    currentProjectIndex = null;
 }
 
-
-// NAVIGATION EVENTS
-
-document.querySelectorAll("[data-page]").forEach(button => {
-    button.addEventListener("click", event => {
-        event.preventDefault();
-        showPage(button.dataset.page);
-    });
-});
-
-
-// MODAL EVENTS
-
-document.getElementById("closeDialog").addEventListener("click", closeProject);
+closeDialogButton.addEventListener("click", closeProject);
 
 dialog.addEventListener("click", event => {
     if (event.target === dialog) {
@@ -406,9 +452,11 @@ dialog.addEventListener("click", event => {
 });
 
 
-// LANGUAGE
+/* =========================
+   LANGUAGE
+========================= */
 
-document.getElementById("langToggle").addEventListener("click", () => {
+function changeLanguage() {
     language = language === "pt" ? "en" : "pt";
 
     document.documentElement.lang =
@@ -418,46 +466,79 @@ document.getElementById("langToggle").addEventListener("click", () => {
         const key = element.dataset.i18n;
         const translated = translations[language][key];
 
-        if (translated) {
+        if (translated !== undefined) {
             element.textContent = translated;
         }
     });
 
-    document.getElementById("langToggle").textContent =
-        language === "pt" ? "EN" : "PT";
+    langToggle.textContent = language === "pt" ? "EN" : "PT";
 
     renderProjects();
 
-    if (dialog.open) {
-        const currentProject = projects.find(
-            project => project.name === dialogTitle.textContent
-        );
-
-        if (currentProject) {
-            openProject(projects.indexOf(currentProject));
-        }
+    if (currentProjectIndex !== null && dialog.open) {
+        openProject(currentProjectIndex);
     }
+}
+
+langToggle.addEventListener("click", changeLanguage);
+
+
+/* =========================
+   NAVIGATION EVENTS
+========================= */
+
+document.querySelectorAll("[data-page]").forEach(element => {
+    element.addEventListener("click", event => {
+        event.preventDefault();
+
+        const pageId = element.dataset.page;
+
+        showPage(pageId);
+    });
 });
 
 
-// INITIAL PAGE
+/* =========================
+   BROWSER HISTORY
+========================= */
 
-const validPages = [
-    "home",
-    "mods",
-    "remakes",
-    "games",
-    "updates",
-    "about"
-];
+function getPageFromHash() {
+    const pageId = location.hash.replace("#", "");
 
-const requestedPage = location.hash.slice(1);
+    return validPages.includes(pageId)
+        ? pageId
+        : "home";
+}
 
-showPage(validPages.includes(requestedPage) ? requestedPage : "home");
+window.addEventListener("popstate", () => {
+    showPage(getPageFromHash(), false);
+});
 
 
-// INITIAL RENDER
+/* =========================
+   INITIALIZATION
+========================= */
 
-renderProjects();
+function initializeWebsite() {
+    if (
+        !dialog ||
+        !dialogImage ||
+        !dialogTitle ||
+        !dialogCategory ||
+        !dialogDescription ||
+        !dialogDownloads ||
+        !langToggle ||
+        !closeDialogButton
+    ) {
+        console.error("MR GREEN: Um ou mais elementos HTML não foram encontrados.");
+        return;
+    }
 
-console.log("MR GREEN: Tudo carregado com sucesso!");
+    showPage(getPageFromHash(), false);
+
+    renderProjects();
+
+    console.log("MR GREEN: Website carregado com sucesso!");
+}
+
+initializeWebsite();
