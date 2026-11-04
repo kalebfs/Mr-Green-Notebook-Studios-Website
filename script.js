@@ -137,8 +137,8 @@ const projects = [
         mobile: "never",
 
         desc: {
-            pt: "Uma nova experiência de Baldi’s Basics com mods e modificadores.",
-            en: "A new Baldi’s Basics experience with mods and modifiers."
+            pt: "Uma nova experiência de Baldi’s Basics com modificadores.",
+            en: "A new Baldi’s Basics experience with modifiers."
         }
     },
 
