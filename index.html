@@ -1,6 +1,7 @@
 
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,10 +16,13 @@
 
 <body>
 
+    <!-- HEADER -->
+
     <header>
         <div class="wrap topbar">
 
-            <a class="brand" href="#home" aria-label="Mr Green Notebook home" onclick="showPage('home');return false">
+            <a class="brand" href="#home" aria-label="Mr Green Notebook home"
+               onclick="showPage('home');return false">
 
                 <span class="brand-mark">
                     <img src="icon.png" alt="Mr Green Notebook">
@@ -44,6 +48,9 @@
         </div>
     </header>
 
+
+    <!-- MAIN -->
+
     <main class="wrap">
 
         <!-- HOME -->
@@ -51,10 +58,11 @@
         <section class="page active" id="home">
 
             <div class="hero">
+
                 <div class="hero-content">
 
                     <div class="eyebrow" data-i18n="heroEyebrow">
-                        INDEPENDENT STUDIO • SINCE 2026
+                        ESTÚDIO INDEPENDENTE • DESDE 2026
                     </div>
 
                     <h1>
@@ -79,18 +87,22 @@
                     </div>
 
                 </div>
+
             </div>
 
             <div class="section-head">
+
                 <div>
                     <h2 data-i18n="featured">Projetos em destaque</h2>
                     <p class="sub" data-i18n="featuredSub">Uma seleção dos nossos projetos.</p>
                 </div>
+
             </div>
 
             <div class="grid" id="featuredGrid"></div>
 
         </section>
+
 
         <!-- MODS -->
 
@@ -108,6 +120,7 @@
 
         </section>
 
+
         <!-- REMAKES -->
 
         <section class="page" id="remakes">
@@ -124,6 +137,7 @@
 
         </section>
 
+
         <!-- GAMES -->
 
         <section class="page" id="games">
@@ -139,6 +153,7 @@
             <div class="grid" id="gamesGrid"></div>
 
         </section>
+
 
         <!-- UPDATES -->
 
@@ -180,6 +195,7 @@
 
         </section>
 
+
         <!-- ABOUT -->
 
         <section class="page" id="about">
@@ -212,6 +228,52 @@
 
     </main>
 
+
+    <!-- PROJECT DETAILS MODAL -->
+
+    <div class="project-modal" id="projectModal">
+
+        <div class="project-modal-content">
+
+            <button class="modal-close"
+                    id="closeProjectModal"
+                    aria-label="Close project details">
+                ×
+            </button>
+
+            <img id="modalThumbnail"
+                 src=""
+                 alt="Project thumbnail">
+
+            <div class="modal-details">
+
+                <span class="eyebrow" id="modalCategory">
+                    PROJECT
+                </span>
+
+                <h2 id="modalTitle">
+                    Project Name
+                </h2>
+
+                <p id="modalDescription">
+                    Project description.
+                </p>
+
+                <h3 data-i18n="downloadTitle">
+                    Download Links:
+                </h3>
+
+                <div class="download-buttons" id="modalDownloads"></div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- FOOTER -->
+
     <footer>
 
         <div class="wrap footer-inner">
@@ -226,6 +288,9 @@
         </div>
 
     </footer>
+
+
+    <!-- JAVASCRIPT -->
 
     <script src="script.js"></script>
 

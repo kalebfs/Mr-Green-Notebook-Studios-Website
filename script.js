@@ -51,7 +51,11 @@ const translations = {
 
         soon: 'EM DESENVOLVIMENTO',
         placeholder: 'Projeto de exemplo — edite as informações no código.',
-        empty: 'Nenhum projeto adicionado aqui ainda.'
+        empty: 'Nenhum projeto adicionado aqui ainda.',
+
+        downloadTitle: 'Download Links:',
+        download: 'Download',
+        comingSoonDownload: 'Em breve'
     },
 
     en: {
@@ -102,7 +106,11 @@ const translations = {
 
         soon: 'IN DEVELOPMENT',
         placeholder: 'Example project — edit the information in the code.',
-        empty: 'No projects added here yet.'
+        empty: 'No projects added here yet.',
+
+        downloadTitle: 'Download Links:',
+        download: 'Download',
+        comingSoonDownload: 'Coming Soon'
     }
 
 };
@@ -111,25 +119,36 @@ const translations = {
 // PROJECTS
 // Add or edit your projects here.
 
+
 const projects = [
 
     {
-        name: "Baldi's Basics Mods",
+        name: "Baldi's Basics Remagined",
         type: 'mods',
         icon: '📚',
         tag: 'Mod',
 
+        image: 'images/baldi-mods.jpg',
+
+        pc: '',
+        mobile: '',
+
         desc: {
-            pt: 'Mods e modificadores para criar novas maneiras de jogar.',
-            en: 'Mods and modifiers that create new ways to play.'
+            pt: 'Uma nova experiência de Baldi’s Basics com mods e modificadores.',
+            en: 'A new Baldi’s Basics experience with mods and modifiers.'
         }
     },
 
     {
-        name: 'Granny Remake',
+        name: 'Granny Redux',
         type: 'remakes',
         icon: '🏚️',
         tag: 'Remake',
+
+        image: 'images/granny-remake.jpg',
+
+        pc: '',
+        mobile: '',
 
         desc: {
             pt: 'Um projeto de remake de terror em desenvolvimento.',
@@ -138,14 +157,19 @@ const projects = [
     },
 
     {
-        name: 'Momo Horror',
+        name: 'Momo Horror Game Escape House Reunion',
         type: 'games',
         icon: '👁️',
         tag: 'Game',
 
+        image: 'images/momo-horror.jpg',
+
+        pc: '',
+        mobile: '',
+
         desc: {
-            pt: 'Um projeto original de terror do estúdio.',
-            en: 'An original horror game project by the studio.'
+            pt: 'Um jogo original de terror desenvolvido pelo estúdio.',
+            en: 'An original horror game developed by the studio.'
         }
     }
 
@@ -159,12 +183,16 @@ let language = 'pt';
 
 // PROJECT CARD
 
-function projectCard(project) {
+function projectCard(project, index) {
 
     const translation = translations[language];
 
     return `
-        <article class="card">
+        <article class="card"
+            data-project-index="${index}"
+            tabindex="0"
+            role="button"
+            aria-label="${project.name}">
 
             <div class="cover">
                 <span class="cover-icon">${project.icon}</span>
@@ -182,6 +210,8 @@ function projectCard(project) {
 
                     <span class="status">● ${translation.soon}</span>
 
+                    <span class="project-link">View Details →</span>
+
                 </div>
 
             </div>
@@ -197,16 +227,20 @@ function renderProjects() {
 
     const featuredGrid = document.getElementById('featuredGrid');
 
-    featuredGrid.innerHTML = projects.map(projectCard).join('');
+    featuredGrid.innerHTML = projects
+        .map((project, index) => projectCard(project, index))
+        .join('');
 
     ['mods', 'remakes', 'games'].forEach(type => {
 
         const grid = document.getElementById(type + 'Grid');
 
-        const items = projects.filter(project => project.type === type);
+        const items = projects
+            .map((project, index) => ({ project, index }))
+            .filter(item => item.project.type === type);
 
         grid.innerHTML = items.length
-            ? items.map(projectCard).join('')
+            ? items.map(item => projectCard(item.project, item.index)).join('')
             : `<div class="empty">${translations[language].empty}</div>`;
 
     });
@@ -253,13 +287,185 @@ document.querySelectorAll('.nav-btn').forEach(button => {
 });
 
 
+// PROJECT DETAILS MODAL
+
+const projectModal = document.getElementById('projectModal');
+
+const modalThumbnail = document.getElementById('modalThumbnail');
+
+const modalTitle = document.getElementById('modalTitle');
+
+const modalCategory = document.getElementById('modalCategory');
+
+const modalDescription = document.getElementById('modalDescription');
+
+const modalDownloads = document.getElementById('modalDownloads');
+
+
+// OPEN PROJECT
+
+function openProject(index) {
+
+    const project = projects[index];
+
+    if (!project) return;
+
+    modalTitle.textContent = project.name;
+
+    modalCategory.textContent = project.tag.toUpperCase();
+
+    modalDescription.textContent = project.desc[language];
+
+    // THUMBNAIL
+
+    if (project.image) {
+
+        modalThumbnail.src = project.image;
+        modalThumbnail.alt = project.name;
+        modalThumbnail.style.display = 'block';
+
+    } else {
+
+        modalThumbnail.removeAttribute('src');
+        modalThumbnail.style.display = 'none';
+
+    }
+
+    // DOWNLOAD BUTTONS
+
+    modalDownloads.innerHTML = '';
+
+    const translation = translations[language];
+
+    function createDownloadButton(platform, icon, url) {
+
+        if (!url) {
+
+            const unavailable = document.createElement('span');
+
+            unavailable.className = 'download-button disabled';
+
+            unavailable.textContent =
+                `${icon} ${platform} — ${translation.comingSoonDownload}`;
+
+            modalDownloads.appendChild(unavailable);
+
+            return;
+
+        }
+
+        const link = document.createElement('a');
+
+        link.className = 'download-button';
+
+        link.href = url;
+
+        link.target = '_blank';
+
+        link.rel = 'noopener noreferrer';
+
+        link.textContent =
+            `${icon} ${platform} — ${translation.download}`;
+
+        modalDownloads.appendChild(link);
+
+    }
+
+    createDownloadButton('PC', '💻', project.pc);
+
+    createDownloadButton('Mobile', '📱', project.mobile);
+
+    // SHOW MODAL
+
+    projectModal.classList.add('active');
+
+    document.body.style.overflow = 'hidden';
+
+}
+
+
+// CLOSE PROJECT
+
+function closeProject() {
+
+    projectModal.classList.remove('active');
+
+    document.body.style.overflow = '';
+
+}
+
+
+// CLICK ON PROJECT CARDS
+
+document.addEventListener('click', event => {
+
+    const card = event.target.closest('[data-project-index]');
+
+    if (!card) return;
+
+    openProject(Number(card.dataset.projectIndex));
+
+});
+
+
+// KEYBOARD SUPPORT FOR PROJECT CARDS
+
+document.addEventListener('keydown', event => {
+
+    const card = event.target.closest('[data-project-index]');
+
+    if (!card) return;
+
+    if (event.key === 'Enter' || event.key === ' ') {
+
+        event.preventDefault();
+
+        openProject(Number(card.dataset.projectIndex));
+
+    }
+
+});
+
+
+// CLOSE BUTTON
+
+document.getElementById('closeProjectModal').addEventListener('click', closeProject);
+
+
+// CLICK OUTSIDE MODAL
+
+projectModal.addEventListener('click', event => {
+
+    if (event.target === projectModal) {
+
+        closeProject();
+
+    }
+
+});
+
+
+// ESCAPE KEY
+
+document.addEventListener('keydown', event => {
+
+    if (event.key === 'Escape') {
+
+        closeProject();
+
+    }
+
+});
+
+
 // LANGUAGE BUTTON
 
 document.getElementById('langToggle').addEventListener('click', () => {
 
     language = language === 'pt' ? 'en' : 'pt';
 
-    document.documentElement.lang = language === 'pt' ? 'pt-BR' : 'en';
+    document.documentElement.lang =
+        language === 'pt' ? 'pt-BR' : 'en';
 
     document.querySelectorAll('[data-i18n]').forEach(element => {
 
@@ -277,6 +483,66 @@ document.getElementById('langToggle').addEventListener('click', () => {
         language === 'pt' ? 'EN' : 'PT';
 
     renderProjects();
+
+    // Update an open project modal
+
+    if (projectModal.classList.contains('active')) {
+
+        const currentProject = projects.find(
+            project => project.name === modalTitle.textContent
+        );
+
+        if (currentProject) {
+
+            modalDescription.textContent =
+                currentProject.desc[language];
+
+            modalCategory.textContent =
+                currentProject.tag.toUpperCase();
+
+            modalDownloads.innerHTML = '';
+
+            function createUpdatedButton(platform, icon, url) {
+
+                if (!url) {
+
+                    const unavailable = document.createElement('span');
+
+                    unavailable.className = 'download-button disabled';
+
+                    unavailable.textContent =
+                        `${icon} ${platform} — ${translations[language].comingSoonDownload}`;
+
+                    modalDownloads.appendChild(unavailable);
+
+                    return;
+
+                }
+
+                const link = document.createElement('a');
+
+                link.className = 'download-button';
+
+                link.href = url;
+
+                link.target = '_blank';
+
+                link.rel = 'noopener noreferrer';
+
+                link.textContent =
+                    `${icon} ${platform} — ${translations[language].download}`;
+
+                modalDownloads.appendChild(link);
+
+            }
+
+            createUpdatedButton('PC', '💻', currentProject.pc);
+
+            createUpdatedButton('Mobile', '📱', currentProject.mobile);
+
+        }
+
+    }
 
 });
 
