@@ -318,38 +318,51 @@ function createDownloadButton(platform, icon, url) {
 
 // OPEN PROJECT
 
+
 function openProject(index) {
 
     console.log("Abrindo projeto:", index);
 
     const project = projects[index];
 
-    if (!project || !projectModal) return;
+    if (!project) {
+        console.error("Projeto não encontrado:", index);
+        return;
+    }
 
     modalTitle.textContent = project.name;
     modalCategory.textContent = project.tag.toUpperCase();
     modalDescription.textContent = project.desc[language];
 
+    // RESET IMAGE
+
+    modalThumbnail.style.display = 'none';
+    modalThumbnail.removeAttribute('src');
+
     if (project.image) {
 
+        modalThumbnail.onload = function () {
+            modalThumbnail.style.display = 'block';
+        };
+
+        modalThumbnail.onerror = function () {
+            console.error("Não foi possível carregar:", project.image);
+        };
+
         modalThumbnail.src = project.image;
-        modalThumbnail.alt = project.name;
-        modalThumbnail.style.display = 'block';
-
-    } else {
-
-        modalThumbnail.removeAttribute('src');
-        modalThumbnail.style.display = 'none';
 
     }
+
+    // DOWNLOADS
 
     modalDownloads.innerHTML = '';
 
     createDownloadButton('PC', '💻', project.pc);
     createDownloadButton('Mobile', '📱', project.mobile);
 
-    projectModal.classList.add('active');
+    // OPEN MODAL
 
+    projectModal.classList.add('active');
     document.body.style.overflow = 'hidden';
 
 }
