@@ -588,3 +588,11 @@ function initializeWebsite() {
 }
 
 initializeWebsite();
+
+console.log("Botão encontrado:", adminLoginButton);
+console.log("Janela encontrada:", adminLoginDialog);
+
+adminLoginButton.addEventListener("click", () => {
+    console.log("BOTÃO CLICADO!");
+    adminLoginDialog.showModal();
+});
