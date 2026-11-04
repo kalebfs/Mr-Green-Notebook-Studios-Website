@@ -1,3 +1,4 @@
+
 "use strict";
 
 /* =========================
@@ -253,11 +254,14 @@ function createProjectCard(project, index) {
         cover.appendChild(image);
     }
 
-    const icon = document.createElement("span");
-    icon.className = "cover-icon";
-    icon.textContent = project.icon;
+    // Only create the icon if it has content.
+    if (project.icon && project.icon.trim() !== "") {
+        const icon = document.createElement("span");
+        icon.className = "cover-icon";
+        icon.textContent = project.icon;
 
-    cover.appendChild(icon);
+        cover.appendChild(icon);
+    }
 
     const body = document.createElement("div");
     body.className = "card-body";
@@ -361,7 +365,7 @@ function renderProjects() {
    DOWNLOAD BUTTONS
 ========================= */
 
-function createDownloadButton(platform, icon, url) {
+function createDownloadButton(platform, url) {
     const text = translations[language];
 
     if (!url) {
@@ -369,7 +373,7 @@ function createDownloadButton(platform, icon, url) {
 
         unavailable.className = "download-button disabled";
         unavailable.textContent =
-            `${icon} ${platform} — ${text.comingSoonDownload}`;
+            `${platform} — ${text.comingSoonDownload}`;
 
         return unavailable;
     }
@@ -380,7 +384,7 @@ function createDownloadButton(platform, icon, url) {
     link.href = url;
     link.target = "_blank";
     link.rel = "noopener noreferrer";
-    link.textContent = `${icon} ${platform} — ${text.download}`;
+    link.textContent = `${platform} — ${text.download}`;
 
     return link;
 }
@@ -421,8 +425,8 @@ function openProject(index) {
     dialogDownloads.replaceChildren();
 
     dialogDownloads.append(
-        createDownloadButton("PC", "💻", project.pc),
-        createDownloadButton("Mobile", "📱", project.mobile)
+        createDownloadButton("PC", project.pc),
+        createDownloadButton("Mobile", project.mobile)
     );
 
     if (!dialog.open) {
