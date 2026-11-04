@@ -125,7 +125,7 @@ const projects = [
     {
         name: "Baldi's Basics Remagined",
         type: "mods",
-        icon: "📚",
+        icon: "",
         tag: "Mod",
         image: "images/baldi-mods.jpg",
         pc: "",
@@ -139,7 +139,7 @@ const projects = [
     {
         name: "Granny Redux",
         type: "remakes",
-        icon: "🏚️",
+        icon: "",
         tag: "Remake",
         image: "images/granny-remake.jpg",
         pc: "",
@@ -153,7 +153,7 @@ const projects = [
     {
         name: "Momo Horror Game Escape House Reunion",
         type: "games",
-        icon: "👁️",
+        icon: "",
         tag: "Game",
         image: "images/momo-horror.jpg",
         pc: "",
