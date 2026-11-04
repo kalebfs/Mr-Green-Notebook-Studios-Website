@@ -1,117 +1,119 @@
 
-console.log("MR GREEN: JavaScript carregado!");
+"use strict";
+
+console.log("MR GREEN: Website iniciado!");
 
 // TRANSLATIONS
 
 const translations = {
     pt: {
-        navHome: 'Início',
-        navMods: 'Mods',
-        navRemakes: 'Remakes',
-        navGames: 'Jogos',
-        navUpdates: 'Atualizações',
-        navAbout: 'Sobre',
+        navHome: "Início",
+        navMods: "Mods",
+        navRemakes: "Remakes",
+        navGames: "Jogos",
+        navUpdates: "Atualizações",
+        navAbout: "Sobre",
 
-        heroEyebrow: 'ESTÚDIO INDEPENDENTE • DESDE 2026',
-        heroText: 'Um universo de jogos, mods e remakes. Explore nossos projetos, acompanhe novidades e descubra o que está sendo desenvolvido.',
-        explore: 'EXPLORAR PROJETOS',
-        aboutButton: 'CONHECER O ESTÚDIO',
+        heroEyebrow: "ESTÚDIO INDEPENDENTE • DESDE 2026",
+        heroText: "Um universo de jogos, mods e remakes. Explore nossos projetos, acompanhe novidades e descubra o que está sendo desenvolvido.",
+        explore: "EXPLORAR PROJETOS",
+        aboutButton: "CONHECER O ESTÚDIO",
 
-        featured: 'Projetos em destaque',
-        featuredSub: 'Uma seleção dos nossos projetos.',
+        featured: "Projetos em destaque",
+        featuredSub: "Uma seleção dos nossos projetos.",
 
-        modsTitle: 'Mods',
-        modsIntro: 'Modificações, novas ideias e experiências diferentes para jogos.',
+        modsTitle: "Mods",
+        modsIntro: "Modificações, novas ideias e experiências diferentes para jogos.",
 
-        remakesTitle: 'Remakes',
-        remakesIntro: 'Projetos inspirados em jogos que marcaram época, recriados com ideias e identidade próprias.',
+        remakesTitle: "Remakes",
+        remakesIntro: "Projetos inspirados em jogos que marcaram época, recriados com ideias e identidade próprias.",
 
-        gamesTitle: 'Jogos',
-        gamesIntro: 'Conheça os jogos originais desenvolvidos pelo estúdio.',
+        gamesTitle: "Jogos",
+        gamesIntro: "Conheça os jogos originais desenvolvidos pelo estúdio.",
 
-        updatesTitle: 'Atualizações',
-        updatesIntro: 'Novidades, anúncios e registros do desenvolvimento.',
+        updatesTitle: "Atualizações",
+        updatesIntro: "Novidades, anúncios e registros do desenvolvimento.",
 
-        updateOneTitle: 'O site do Mr Green Notebook Studios foi criado!',
-        updateOneText: 'Esta é a primeira versão do portal. Em breve, mais projetos e novidades serão adicionados.',
+        updateOneTitle: "O site do Mr Green Notebook Studios foi criado!",
+        updateOneText: "Esta é a primeira versão do portal. Em breve, mais projetos e novidades serão adicionados.",
 
-        updateTwoTitle: 'Mais novidades chegando',
-        updateTwoText: 'Acompanhe esta página para conhecer os próximos lançamentos.',
+        updateTwoTitle: "Mais novidades chegando",
+        updateTwoText: "Acompanhe esta página para conhecer os próximos lançamentos.",
 
-        comingSoon: 'EM BREVE',
+        comingSoon: "EM BREVE",
 
-        aboutTitle: 'Sobre o estúdio',
-        aboutHeading: 'Criatividade em cada projeto.',
-        aboutText: 'Mr Green Notebook Studios é um espaço independente para criar jogos, mods e remakes. Este site reúne os projetos em um só lugar e será atualizado conforme novas experiências forem desenvolvidas.',
+        aboutTitle: "Sobre o estúdio",
+        aboutHeading: "Criatividade em cada projeto.",
+        aboutText: "Mr Green Notebook Studios é um espaço independente para criar jogos, mods e remakes. Este site reúne os projetos em um só lugar e será atualizado conforme novas experiências forem desenvolvidas.",
 
-        contactHeading: 'Contato e comunidade',
-        contactText: 'Adicione aqui seus links oficiais, como YouTube, Roblox ou outras redes. Não coloque informações pessoais privadas.',
+        contactHeading: "Contato e comunidade",
+        contactText: "Adicione aqui seus links oficiais, como YouTube, Roblox ou outras redes. Não coloque informações pessoais privadas.",
 
-        rights: 'Todos os direitos reservados.',
-        footer: 'Feito com criatividade.',
+        rights: "Todos os direitos reservados.",
+        footer: "Feito com criatividade.",
 
-        soon: 'EM DESENVOLVIMENTO',
-        placeholder: 'Projeto de exemplo — edite as informações no código.',
-        empty: 'Nenhum projeto adicionado aqui ainda.',
+        soon: "EM DESENVOLVIMENTO",
+        empty: "Nenhum projeto adicionado aqui ainda.",
 
-        downloadTitle: 'Download Links:',
-        download: 'Download',
-        comingSoonDownload: 'Em breve'
+        downloadTitle: "Download Links:",
+        download: "Download",
+        comingSoonDownload: "Em breve",
+        viewDetails: "Ver detalhes"
     },
 
     en: {
-        navHome: 'Home',
-        navMods: 'Mods',
-        navRemakes: 'Remakes',
-        navGames: 'Games',
-        navUpdates: 'Updates',
-        navAbout: 'About',
+        navHome: "Home",
+        navMods: "Mods",
+        navRemakes: "Remakes",
+        navGames: "Games",
+        navUpdates: "Updates",
+        navAbout: "About",
 
-        heroEyebrow: 'INDEPENDENT STUDIO • SINCE 2026',
-        heroText: 'A universe of games, mods and remakes. Explore our projects, follow the news and discover what is being developed.',
-        explore: 'EXPLORE PROJECTS',
-        aboutButton: 'ABOUT THE STUDIO',
+        heroEyebrow: "INDEPENDENT STUDIO • SINCE 2026",
+        heroText: "A universe of games, mods and remakes. Explore our projects, follow the news and discover what is being developed.",
+        explore: "EXPLORE PROJECTS",
+        aboutButton: "ABOUT THE STUDIO",
 
-        featured: 'Featured projects',
-        featuredSub: 'A selection of our projects.',
+        featured: "Featured projects",
+        featuredSub: "A selection of our projects.",
 
-        modsTitle: 'Mods',
-        modsIntro: 'Modifications, new ideas and different experiences for games.',
+        modsTitle: "Mods",
+        modsIntro: "Modifications, new ideas and different experiences for games.",
 
-        remakesTitle: 'Remakes',
-        remakesIntro: 'Projects inspired by memorable games, recreated with original ideas and identity.',
+        remakesTitle: "Remakes",
+        remakesIntro: "Projects inspired by memorable games, recreated with original ideas and identity.",
 
-        gamesTitle: 'Games',
-        gamesIntro: 'Discover original games developed by the studio.',
+        gamesTitle: "Games",
+        gamesIntro: "Discover original games developed by the studio.",
 
-        updatesTitle: 'Updates',
-        updatesIntro: 'News, announcements and development logs.',
+        updatesTitle: "Updates",
+        updatesIntro: "News, announcements and development logs.",
 
-        updateOneTitle: 'The Mr Green Notebook Studios website was created!',
-        updateOneText: 'This is the first version of the portal. More projects and news will be added soon.',
+        updateOneTitle: "The Mr Green Notebook Studios website was created!",
+        updateOneText: "This is the first version of the portal. More projects and news will be added soon.",
 
-        updateTwoTitle: 'More news coming soon',
-        updateTwoText: 'Check this page to discover upcoming releases.',
+        updateTwoTitle: "More news coming soon",
+        updateTwoText: "Check this page to discover upcoming releases.",
 
-        comingSoon: 'COMING SOON',
+        comingSoon: "COMING SOON",
 
-        aboutTitle: 'About the studio',
-        aboutHeading: 'Creativity in every project.',
-        aboutText: 'Mr Green Notebook Studios is an independent space for creating games, mods and remakes. This website brings the projects together and will be updated as new experiences are developed.',
+        aboutTitle: "About the studio",
+        aboutHeading: "Creativity in every project.",
+        aboutText: "Mr Green Notebook Studios is an independent space for creating games, mods and remakes. This website brings the projects together and will be updated as new experiences are developed.",
 
-        contactHeading: 'Contact and community',
-        contactText: 'Add your official links here, such as YouTube, Roblox or other social networks. Do not publish private personal information.',
+        contactHeading: "Contact and community",
+        contactText: "Add your official links here, such as YouTube, Roblox or other social networks. Do not publish private personal information.",
 
-        rights: 'All rights reserved.',
-        footer: 'Made with creativity.',
+        rights: "All rights reserved.",
+        footer: "Made with creativity.",
 
-        soon: 'IN DEVELOPMENT',
-        placeholder: 'Example project — edit the information in the code.',
-        empty: 'No projects added here yet.',
+        soon: "IN DEVELOPMENT",
+        empty: "No projects added here yet.",
 
-        downloadTitle: 'Download Links:',
-        download: 'Download',
-        comingSoonDownload: 'Coming Soon'
+        downloadTitle: "Download Links:",
+        download: "Download",
+        comingSoonDownload: "Coming Soon",
+        viewDetails: "View Details"
     }
 };
 
@@ -119,404 +121,343 @@ const translations = {
 // PROJECTS
 
 const projects = [
-
     {
         name: "Baldi's Basics Remagined",
-        type: 'mods',
-        icon: '📚',
-        tag: 'Mod',
-        image: 'images/baldi-mods.jpg',
-        pc: '',
-        mobile: '',
+        type: "mods",
+        icon: "📚",
+        tag: "Mod",
+        image: "images/baldi-mods.jpg",
+        pc: "",
+        mobile: "",
         desc: {
-            pt: 'Uma nova experiência de Baldi’s Basics com mods e modificadores.',
-            en: 'A new Baldi’s Basics experience with mods and modifiers.'
+            pt: "Uma nova experiência de Baldi’s Basics com mods e modificadores.",
+            en: "A new Baldi’s Basics experience with mods and modifiers."
         }
     },
 
     {
-        name: 'Granny Redux',
-        type: 'remakes',
-        icon: '🏚️',
-        tag: 'Remake',
-        image: 'images/granny-remake.jpg',
-        pc: '',
-        mobile: '',
+        name: "Granny Redux",
+        type: "remakes",
+        icon: "🏚️",
+        tag: "Remake",
+        image: "images/granny-remake.jpg",
+        pc: "",
+        mobile: "",
         desc: {
-            pt: 'Um projeto de remake de terror em desenvolvimento.',
-            en: 'A horror remake project currently in development.'
+            pt: "Um projeto de remake de terror em desenvolvimento.",
+            en: "A horror remake project currently in development."
         }
     },
 
     {
-        name: 'Momo Horror Game Escape House Reunion',
-        type: 'games',
-        icon: '👁️',
-        tag: 'Game',
-        image: 'images/momo-horror.jpg',
-        pc: '',
-        mobile: '',
+        name: "Momo Horror Game Escape House Reunion",
+        type: "games",
+        icon: "👁️",
+        tag: "Game",
+        image: "images/momo-horror.jpg",
+        pc: "",
+        mobile: "",
         desc: {
-            pt: 'Um jogo original de terror desenvolvido pelo estúdio.',
-            en: 'An original horror game developed by the studio.'
+            pt: "Um jogo original de terror desenvolvido pelo estúdio.",
+            en: "An original horror game developed by the studio."
         }
     }
-
 ];
 
 
-// LANGUAGE
+// STATE
 
-let language = 'pt';
+let language = "pt";
+
+
+// ELEMENTS
+
+const dialog = document.getElementById("projectDialog");
+const dialogImage = document.getElementById("dialogImage");
+const dialogTitle = document.getElementById("dialogTitle");
+const dialogCategory = document.getElementById("dialogCategory");
+const dialogDescription = document.getElementById("dialogDescription");
+const dialogDownloads = document.getElementById("dialogDownloads");
+
+
+// PAGE NAVIGATION
+
+function showPage(pageId) {
+    const page = document.getElementById(pageId);
+
+    if (!page) return;
+
+    document.querySelectorAll(".page").forEach(section => {
+        section.classList.toggle("active", section.id === pageId);
+    });
+
+    document.querySelectorAll(".nav-btn").forEach(button => {
+        button.classList.toggle("active", button.dataset.page === pageId);
+    });
+
+    history.replaceState(null, "", "#" + pageId);
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+}
 
 
 // PROJECT CARD
 
-function projectCard(project, index) {
+function createProjectCard(project, index) {
+    const card = document.createElement("article");
+    card.className = "card";
 
-    const translation = translations[language];
+    const cover = document.createElement("div");
+    cover.className = "cover";
 
-    return `
-        <article class="card" data-project-index="${index}">
+    if (project.image) {
+        const image = document.createElement("img");
+        image.src = project.image;
+        image.alt = project.name;
+        image.loading = "lazy";
 
-            <div class="cover">
-                <span class="cover-icon">${project.icon}</span>
-            </div>
+        image.onerror = () => {
+            image.remove();
+        };
 
-            <div class="card-body">
+        cover.appendChild(image);
+    }
 
-                <span class="tag">${project.tag}</span>
+    const icon = document.createElement("span");
+    icon.className = "cover-icon";
+    icon.textContent = project.icon;
 
-                <h3>${project.name}</h3>
+    cover.appendChild(icon);
 
-                <p>${project.desc[language]}</p>
+    const body = document.createElement("div");
+    body.className = "card-body";
 
-                <div class="card-foot">
+    const tag = document.createElement("span");
+    tag.className = "tag";
+    tag.textContent = project.tag;
 
-                    <span class="status">● ${translation.soon}</span>
+    const title = document.createElement("h3");
+    title.textContent = project.name;
 
-                    <button class="project-link view-details" type="button">
-                        View Details →
-                    </button>
+    const description = document.createElement("p");
+    description.textContent = project.desc[language];
 
-                </div>
+    const footer = document.createElement("div");
+    footer.className = "card-foot";
 
-            </div>
+    const status = document.createElement("span");
+    status.className = "status";
+    status.textContent = "● " + translations[language].soon;
 
-        </article>
-    `;
+    const details = document.createElement("button");
+    details.type = "button";
+    details.className = "project-link";
+    details.textContent = translations[language].viewDetails;
+
+    details.addEventListener("click", () => {
+        openProject(index);
+    });
+
+    footer.append(status, details);
+    body.append(tag, title, description, footer);
+    card.append(cover, body);
+
+    return card;
 }
 
 
 // RENDER PROJECTS
 
-function renderProjects() {
+function renderGrid(gridId, items) {
+    const grid = document.getElementById(gridId);
 
-    const featuredGrid = document.getElementById('featuredGrid');
+    if (!grid) return;
 
-    if (!featuredGrid) return;
+    grid.replaceChildren();
 
-    featuredGrid.innerHTML = projects
-        .map((project, index) => projectCard(project, index))
-        .join('');
-
-    ['mods', 'remakes', 'games'].forEach(type => {
-
-        const grid = document.getElementById(type + 'Grid');
-
-        if (!grid) return;
-
-        const items = projects
-            .map((project, index) => ({ project, index }))
-            .filter(item => item.project.type === type);
-
-        grid.innerHTML = items.length
-            ? items.map(item => projectCard(item.project, item.index)).join('')
-            : `<div class="empty">${translations[language].empty}</div>`;
-
-    });
-
-}
-
-
-// PAGE NAVIGATION
-
-function showPage(id) {
-
-    document.querySelectorAll('.page').forEach(page => {
-        page.classList.toggle('active', page.id === id);
-    });
-
-    document.querySelectorAll('.nav-btn').forEach(button => {
-        button.classList.toggle('active', button.dataset.page === id);
-    });
-
-    history.replaceState(null, '', '#' + id);
-
-    window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-    });
-
-}
-
-
-// NAVIGATION BUTTONS
-
-document.querySelectorAll('.nav-btn').forEach(button => {
-
-    button.addEventListener('click', () => {
-        showPage(button.dataset.page);
-    });
-
-});
-
-
-// MODAL ELEMENTS
-
-const projectModal = document.getElementById('projectModal');
-const modalThumbnail = document.getElementById('modalThumbnail');
-const modalTitle = document.getElementById('modalTitle');
-const modalCategory = document.getElementById('modalCategory');
-const modalDescription = document.getElementById('modalDescription');
-const modalDownloads = document.getElementById('modalDownloads');
-
-
-// DOWNLOAD BUTTON CREATOR
-
-function createDownloadButton(platform, icon, url) {
-
-    const translation = translations[language];
-
-    if (!url) {
-
-        const unavailable = document.createElement('span');
-
-        unavailable.className = 'download-button disabled';
-
-        unavailable.textContent =
-            `${icon} ${platform} — ${translation.comingSoonDownload}`;
-
-        modalDownloads.appendChild(unavailable);
-
+    if (items.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = translations[language].empty;
+        grid.appendChild(empty);
         return;
     }
 
-    const link = document.createElement('a');
+    items.forEach(item => {
+        grid.appendChild(createProjectCard(item.project, item.index));
+    });
+}
 
-    link.className = 'download-button';
+function renderProjects() {
+    const indexedProjects = projects.map((project, index) => ({
+        project,
+        index
+    }));
+
+    renderGrid("featuredGrid", indexedProjects);
+
+    renderGrid(
+        "modsGrid",
+        indexedProjects.filter(item => item.project.type === "mods")
+    );
+
+    renderGrid(
+        "remakesGrid",
+        indexedProjects.filter(item => item.project.type === "remakes")
+    );
+
+    renderGrid(
+        "gamesGrid",
+        indexedProjects.filter(item => item.project.type === "games")
+    );
+}
+
+
+// DOWNLOAD BUTTONS
+
+function createDownloadButton(platform, icon, url) {
+    const translation = translations[language];
+
+    if (!url) {
+        const unavailable = document.createElement("span");
+        unavailable.className = "download-button disabled";
+        unavailable.textContent =
+            `${icon} ${platform} — ${translation.comingSoonDownload}`;
+
+        return unavailable;
+    }
+
+    const link = document.createElement("a");
+    link.className = "download-button";
     link.href = url;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = `${icon} ${platform} — ${translation.download}`;
 
-    link.textContent =
-        `${icon} ${platform} — ${translation.download}`;
-
-    modalDownloads.appendChild(link);
+    return link;
 }
 
 
 // OPEN PROJECT
 
-
 function openProject(index) {
-
-    console.log("Abrindo projeto:", index);
-
     const project = projects[index];
 
-    if (!project) {
-        console.error("Projeto não encontrado:", index);
-        return;
+    if (!project) return;
+
+    dialogTitle.textContent = project.name;
+    dialogCategory.textContent = project.tag.toUpperCase();
+    dialogDescription.textContent = project.desc[language];
+
+    dialogImage.onerror = () => {
+        dialogImage.style.display = "none";
+    };
+
+    dialogImage.onload = () => {
+        dialogImage.style.display = "block";
+    };
+
+    dialogImage.style.display = "block";
+    dialogImage.src = project.image || "";
+
+    dialogDownloads.replaceChildren();
+
+    dialogDownloads.append(
+        createDownloadButton("PC", "💻", project.pc),
+        createDownloadButton("Mobile", "📱", project.mobile)
+    );
+
+    if (!dialog.open) {
+        dialog.showModal();
     }
-
-    modalTitle.textContent = project.name;
-    modalCategory.textContent = project.tag.toUpperCase();
-    modalDescription.textContent = project.desc[language];
-
-    // RESET IMAGE
-
-    modalThumbnail.style.display = 'none';
-    modalThumbnail.removeAttribute('src');
-
-    if (project.image) {
-
-        modalThumbnail.onload = function () {
-            modalThumbnail.style.display = 'block';
-        };
-
-        modalThumbnail.onerror = function () {
-            console.error("Não foi possível carregar:", project.image);
-        };
-
-        modalThumbnail.src = project.image;
-
-    }
-
-    // DOWNLOADS
-
-    modalDownloads.innerHTML = '';
-
-    createDownloadButton('PC', '💻', project.pc);
-    createDownloadButton('Mobile', '📱', project.mobile);
-
-    // OPEN MODAL
-
-    projectModal.classList.add('active');
-    document.body.style.overflow = 'hidden';
-
 }
 
 
 // CLOSE PROJECT
 
 function closeProject() {
-
-    if (!projectModal) return;
-
-    projectModal.classList.remove('active');
-
-    document.body.style.overflow = '';
-
+    if (dialog.open) {
+        dialog.close();
+    }
 }
 
 
-// CLICK ON VIEW DETAILS
+// NAVIGATION EVENTS
 
-document.addEventListener('click', function (event) {
-
-    const button = event.target.closest('.view-details');
-
-    if (!button) return;
-
-    event.preventDefault();
-
-    const card = button.closest('.card');
-
-    if (!card) return;
-
-    const index = Number(card.dataset.projectIndex);
-
-    console.log("Botão clicado! Projeto:", index);
-
-    openProject(index);
-
+document.querySelectorAll("[data-page]").forEach(button => {
+    button.addEventListener("click", event => {
+        event.preventDefault();
+        showPage(button.dataset.page);
+    });
 });
 
 
-// CLOSE BUTTON
+// MODAL EVENTS
 
-const closeProjectModal = document.getElementById('closeProjectModal');
+document.getElementById("closeDialog").addEventListener("click", closeProject);
 
-if (closeProjectModal) {
-    closeProjectModal.addEventListener('click', closeProject);
-}
-
-
-// CLICK OUTSIDE MODAL
-
-if (projectModal) {
-
-    projectModal.addEventListener('click', event => {
-
-        if (event.target === projectModal) {
-            closeProject();
-        }
-
-    });
-
-}
-
-
-// ESCAPE KEY
-
-document.addEventListener('keydown', event => {
-
-    if (event.key === 'Escape') {
+dialog.addEventListener("click", event => {
+    if (event.target === dialog) {
         closeProject();
     }
-
 });
 
 
-// LANGUAGE BUTTON
+// LANGUAGE
 
-const langToggle = document.getElementById('langToggle');
+document.getElementById("langToggle").addEventListener("click", () => {
+    language = language === "pt" ? "en" : "pt";
 
-if (langToggle) {
+    document.documentElement.lang =
+        language === "pt" ? "pt-BR" : "en";
 
-    langToggle.addEventListener('click', () => {
+    document.querySelectorAll("[data-i18n]").forEach(element => {
+        const key = element.dataset.i18n;
+        const translated = translations[language][key];
 
-        language = language === 'pt' ? 'en' : 'pt';
-
-        document.documentElement.lang =
-            language === 'pt' ? 'pt-BR' : 'en';
-
-        document.querySelectorAll('[data-i18n]').forEach(element => {
-
-            const key = element.dataset.i18n;
-
-            if (translations[language][key]) {
-                element.textContent = translations[language][key];
-            }
-
-        });
-
-        langToggle.textContent =
-            language === 'pt' ? 'EN' : 'PT';
-
-        renderProjects();
-
-        // Update open modal
-
-        if (projectModal && projectModal.classList.contains('active')) {
-
-            const currentProject = projects.find(
-                project => project.name === modalTitle.textContent
-            );
-
-            if (currentProject) {
-
-                modalDescription.textContent =
-                    currentProject.desc[language];
-
-                modalCategory.textContent =
-                    currentProject.tag.toUpperCase();
-
-                modalDownloads.innerHTML = '';
-
-                createDownloadButton('PC', '💻', currentProject.pc);
-                createDownloadButton('Mobile', '📱', currentProject.mobile);
-
-            }
-
+        if (translated) {
+            element.textContent = translated;
         }
-
     });
 
-}
+    document.getElementById("langToggle").textContent =
+        language === "pt" ? "EN" : "PT";
+
+    renderProjects();
+
+    if (dialog.open) {
+        const currentProject = projects.find(
+            project => project.name === dialogTitle.textContent
+        );
+
+        if (currentProject) {
+            openProject(projects.indexOf(currentProject));
+        }
+    }
+});
 
 
 // INITIAL PAGE
 
-const initialPage = location.hash.slice(1);
-
 const validPages = [
-    'home',
-    'mods',
-    'remakes',
-    'games',
-    'updates',
-    'about'
+    "home",
+    "mods",
+    "remakes",
+    "games",
+    "updates",
+    "about"
 ];
 
-if (validPages.includes(initialPage)) {
-    showPage(initialPage);
-}
+const requestedPage = location.hash.slice(1);
+
+showPage(validPages.includes(requestedPage) ? requestedPage : "home");
 
 
 // INITIAL RENDER
 
 renderProjects();
 
-console.log("MR GREEN: Site inicializado!");
+console.log("MR GREEN: Tudo carregado com sucesso!");
