@@ -87,10 +87,10 @@ header {
 
     .brand-mark img {
         display: block;
-        width: 25px;
-        height: 25px;
+        width: 16px;
+        height: 16px;
         object-fit: contain;
-        border-radius: 6px;
+        border-radius: 4px;
     }
 
 /* NAVIGATION */
