@@ -310,6 +310,8 @@ const modalDownloads = document.getElementById('modalDownloads');
 
 function openProject(index) {
 
+    console.log("Abrindo projeto:", index);
+
     const project = projects[index];
 
     if (!project) return;
