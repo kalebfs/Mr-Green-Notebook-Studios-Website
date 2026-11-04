@@ -577,6 +577,7 @@ adminLoginForm.addEventListener("submit", async event => {
 
     } catch (error) {
         console.error("Admin login error:", error);
+        alert(error.code + " - " + error.message);
 
         loginError.textContent =
             "Login failed. Check your email and password.";
