@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -9,12 +10,13 @@
     <title>Mr Green Notebook Studios</title>
 
     <link rel="icon" type="image/png" href="icon.png">
-    <link rel="stylesheet" href="style.css?v=13">
-    <script type="module" src="script.js?v=16"></script>
+    <link rel="stylesheet" href="style.css?v=14">
+    <script type="module" src="script.js?v=17"></script>
 </head>
 
 <body>
 
+    <!-- HEADER -->
     <header class="site-header">
         <div class="wrap topbar">
 
@@ -22,6 +24,7 @@
                 <span class="brand-mark">
                     <img src="icon.png" alt="Mr Green logo">
                 </span>
+
                 <span>MR GREEN NOTEBOOK STUDIOS</span>
             </a>
 
@@ -31,7 +34,9 @@
                 <button class="nav-btn" data-page="remakes" data-i18n="navRemakes">Remakes</button>
                 <button class="nav-btn" data-page="games" data-i18n="navGames">Jogos</button>
                 <button class="nav-btn" data-page="updates" data-i18n="navUpdates">Atualizações</button>
+                <button class="nav-btn" data-page="posts" data-i18n="navPosts">Posts</button>
                 <button class="nav-btn" data-page="about" data-i18n="navAbout">Sobre</button>
+
                 <button class="lang-btn" id="langToggle" type="button">EN</button>
             </nav>
 
@@ -57,6 +62,7 @@
                     </p>
 
                     <div class="actions">
+
                         <button class="primary" data-page="mods" data-i18n="explore">
                             EXPLORAR PROJETOS
                         </button>
@@ -64,6 +70,7 @@
                         <button class="secondary" data-page="about" data-i18n="aboutButton">
                             CONHECER O ESTÚDIO
                         </button>
+
                     </div>
 
                 </div>
@@ -72,7 +79,9 @@
             <div class="section-head">
                 <div>
                     <h2 data-i18n="featured">Projetos em destaque</h2>
-                    <p class="sub" data-i18n="featuredSub">Uma seleção dos nossos projetos.</p>
+                    <p class="sub" data-i18n="featuredSub">
+                        Uma seleção dos nossos projetos.
+                    </p>
                 </div>
             </div>
 
@@ -84,7 +93,9 @@
         <section class="page" id="mods">
 
             <div class="eyebrow">MR GREEN / MODS</div>
+
             <h1 class="page-title" data-i18n="modsTitle">Mods</h1>
+
             <p class="page-intro" data-i18n="modsIntro"></p>
 
             <div class="grid" id="modsGrid"></div>
@@ -95,7 +106,9 @@
         <section class="page" id="remakes">
 
             <div class="eyebrow">MR GREEN / REMAKES</div>
+
             <h1 class="page-title" data-i18n="remakesTitle">Remakes</h1>
+
             <p class="page-intro" data-i18n="remakesIntro"></p>
 
             <div class="grid" id="remakesGrid"></div>
@@ -106,7 +119,9 @@
         <section class="page" id="games">
 
             <div class="eyebrow">MR GREEN / GAMES</div>
+
             <h1 class="page-title" data-i18n="gamesTitle">Jogos</h1>
+
             <p class="page-intro" data-i18n="gamesIntro"></p>
 
             <div class="grid" id="gamesGrid"></div>
@@ -145,20 +160,65 @@
             <div id="updatesList">
 
                 <article class="update">
+
                     <time data-date="2026-11-04">04 NOV 2026</time>
+
                     <h3 data-i18n="updateOneTitle">
                         O site do Mr Green Notebook Studios foi criado!
                     </h3>
+
                     <p data-i18n="updateOneText"></p>
+
                 </article>
 
                 <article class="update">
+
                     <time data-i18n="comingSoon">EM BREVE</time>
+
                     <h3 data-i18n="updateTwoTitle">
                         Mais novidades chegando
                     </h3>
+
                     <p data-i18n="updateTwoText"></p>
+
                 </article>
+
+            </div>
+
+        </section>
+
+        <!-- POSTS -->
+        <section class="page" id="posts">
+
+            <div class="eyebrow">MR GREEN / PUBLICATIONS</div>
+
+            <div class="section-head">
+
+                <div>
+                    <h1 class="page-title" data-i18n="postsTitle">
+                        Posts
+                    </h1>
+
+                    <p class="page-intro" data-i18n="postsIntro">
+                        Notícias, novidades e publicações do estúdio.
+                    </p>
+                </div>
+
+                <button id="createPostButton"
+                        class="primary"
+                        type="button"
+                        hidden
+                        data-i18n="createPost">
+                    + Criar post
+                </button>
+
+            </div>
+
+            <div class="posts-grid" id="postsList">
+
+                <p data-i18n="noPosts">
+                    Ainda não existem publicações.
+                </p>
 
             </div>
 
@@ -168,16 +228,29 @@
         <section class="page" id="about">
 
             <div class="eyebrow">MR GREEN / ABOUT</div>
-            <h1 class="page-title" data-i18n="aboutTitle">Sobre o estúdio</h1>
+
+            <h1 class="page-title" data-i18n="aboutTitle">
+                Sobre o estúdio
+            </h1>
 
             <div class="about-box">
-                <h2 data-i18n="aboutHeading">Criatividade em cada projeto.</h2>
+
+                <h2 data-i18n="aboutHeading">
+                    Criatividade em cada projeto.
+                </h2>
+
                 <p data-i18n="aboutText"></p>
+
             </div>
 
             <div class="about-box">
-                <h2 data-i18n="contactHeading">Contato e comunidade</h2>
+
+                <h2 data-i18n="contactHeading">
+                    Contato e comunidade
+                </h2>
+
                 <p data-i18n="contactText"></p>
+
             </div>
 
         </section>
@@ -189,7 +262,9 @@
 
         <div class="dialog-content">
 
-            <button class="modal-close" id="closeAdminLogin" type="button">
+            <button class="modal-close"
+                    id="closeAdminLogin"
+                    type="button">
                 ×
             </button>
 
@@ -232,7 +307,9 @@
 
         <div class="dialog-content">
 
-            <button class="modal-close" id="closeUpdateEditor" type="button">
+            <button class="modal-close"
+                    id="closeUpdateEditor"
+                    type="button">
                 ×
             </button>
 
@@ -274,6 +351,76 @@
 
     </dialog>
 
+    <!-- CREATE POST -->
+    <dialog class="project-dialog" id="postEditorDialog">
+
+        <div class="dialog-content">
+
+            <button class="modal-close"
+                    id="cancelPostButton"
+                    type="button"
+                    aria-label="Fechar">
+                ×
+            </button>
+
+            <div class="dialog-details">
+
+                <span class="eyebrow">MR GREEN / NEW POST</span>
+
+                <h2>Create a Post</h2>
+
+                <form id="postForm">
+
+                    <label for="postTitle">
+                        Title
+                    </label>
+
+                    <input type="text"
+                           id="postTitle"
+                           placeholder="Enter the title..."
+                           maxlength="100"
+                           required>
+
+                    <label for="postDescription">
+                        Description
+                    </label>
+
+                    <textarea id="postDescription"
+                              placeholder="Write your post..."
+                              maxlength="3000"
+                              rows="6"
+                              required></textarea>
+
+                    <label for="postImage">
+                        Upload Image
+                    </label>
+
+                    <input type="file"
+                           id="postImage"
+                           accept="image/png,image/jpeg,image/webp,image/gif,image/bmp,image/avif">
+
+                    <img id="postImagePreview"
+                         class="post-image-preview"
+                         alt="Image preview"
+                         hidden>
+
+                    <p id="postError" role="alert"></p>
+
+                    <button class="primary"
+                            id="publishPostButton"
+                            type="submit"
+                            data-i18n="publishPost">
+                        Publicar
+                    </button>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    </dialog>
+
     <!-- PROJECT DETAILS -->
     <dialog class="project-dialog" id="projectDialog">
 
@@ -292,15 +439,23 @@
 
             <div class="dialog-details">
 
-                <span class="eyebrow" id="dialogCategory">PROJECT</span>
+                <span class="eyebrow" id="dialogCategory">
+                    PROJECT
+                </span>
 
-                <h2 id="dialogTitle">Project Name</h2>
+                <h2 id="dialogTitle">
+                    Project Name
+                </h2>
 
                 <p id="dialogDescription"></p>
 
-                <h3 data-i18n="downloadTitle">Links para download:</h3>
+                <h3 data-i18n="downloadTitle">
+                    Links para download:
+                </h3>
 
-                <div class="download-buttons" id="dialogDownloads"></div>
+                <div class="download-buttons"
+                     id="dialogDownloads">
+                </div>
 
             </div>
 
@@ -308,15 +463,24 @@
 
     </dialog>
 
+    <!-- FOOTER -->
     <footer>
+
         <div class="wrap footer-inner">
+
             <span>
                 © 2026 MR GREEN NOTEBOOK STUDIOS.
-                <span data-i18n="rights">Todos os direitos reservados.</span>
+                <span data-i18n="rights">
+                    Todos os direitos reservados.
+                </span>
             </span>
 
-            <span data-i18n="footer">Feito com criatividade.</span>
+            <span data-i18n="footer">
+                Feito com criatividade.
+            </span>
+
         </div>
+
     </footer>
 
 </body>

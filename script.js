@@ -1,3 +1,4 @@
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
 
 import {
@@ -17,8 +18,15 @@ import {
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
 
+import {
+    getStorage,
+    ref as storageRef,
+    uploadBytes,
+    getDownloadURL
+} from "https://www.gstatic.com/firebasejs/13.2.0/firebase-storage.js";
+
 /* =========================
-   FIREBASE CONFIGURATION
+   FIREBASE
 ========================= */
 
 const firebaseConfig = {
@@ -33,6 +41,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 const ADMIN_UID = "Qouhq47ZojcixHwiXkfmXwfT2xe2";
 
@@ -47,6 +56,7 @@ const translations = {
         navRemakes: "Remakes",
         navGames: "Jogos",
         navUpdates: "Atualizações",
+        navPosts: "Posts",
         navAbout: "Sobre",
 
         heroEyebrow: "ESTÚDIO INDEPENDENTE • DESDE 2026",
@@ -68,6 +78,21 @@ const translations = {
 
         updatesTitle: "Atualizações",
         updatesIntro: "Novidades, anúncios e registros do desenvolvimento.",
+
+        postsTitle: "Posts",
+        postsIntro: "Notícias, novidades e publicações do estúdio.",
+        createPost: "+ Criar post",
+        noPosts: "Ainda não existem publicações.",
+        uploadImage: "Escolher imagem",
+        publishPost: "Publicar",
+        publishingPost: "Publicando...",
+        postTitlePlaceholder: "Digite o título...",
+        postDescriptionPlaceholder: "Escreva sua publicação...",
+        postImageError: "Formato de imagem não permitido.",
+        postSizeError: "A imagem deve ter no máximo 10 MB.",
+        postPermissionError: "Você não tem permissão para publicar.",
+        postPublishError: "Não foi possível publicar. Verifique o Firebase.",
+        postLoadingError: "Não foi possível carregar as publicações.",
 
         updateOneTitle: "O site do Mr Green Notebook Studios foi criado!",
         updateOneText: "Esta é a primeira versão do portal. Em breve, mais projetos e novidades serão adicionados.",
@@ -103,6 +128,7 @@ const translations = {
         navRemakes: "Remakes",
         navGames: "Games",
         navUpdates: "Updates",
+        navPosts: "Posts",
         navAbout: "About",
 
         heroEyebrow: "INDEPENDENT STUDIO • SINCE 2026",
@@ -124,6 +150,21 @@ const translations = {
 
         updatesTitle: "Updates",
         updatesIntro: "News, announcements and development logs.",
+
+        postsTitle: "Posts",
+        postsIntro: "News, announcements and studio publications.",
+        createPost: "+ Create Post",
+        noPosts: "There are no posts yet.",
+        uploadImage: "Choose image",
+        publishPost: "Publish",
+        publishingPost: "Publishing...",
+        postTitlePlaceholder: "Enter the title...",
+        postDescriptionPlaceholder: "Write your post...",
+        postImageError: "Image format not allowed.",
+        postSizeError: "The image must be no larger than 10 MB.",
+        postPermissionError: "You do not have permission to publish.",
+        postPublishError: "Could not publish. Check Firebase.",
+        postLoadingError: "Could not load posts.",
 
         updateOneTitle: "The Mr Green Notebook Studios website was created!",
         updateOneText: "This is the first version of the portal. More projects and news will be added soon.",
@@ -165,11 +206,8 @@ const projects = [
         icon: "",
         tag: "Mod",
         image: "images/baldi-mods.jpg",
-
         pc: "https://github.com/kalebfs/Mr-Green-Notebook-Studios-Website/releases/download/V1.6/baldi_s_basics_remagined_v16.rar",
-
         mobile: "NEVER",
-
         desc: {
             pt: "Uma nova experiência de Baldi’s Basics com modificadores.",
             en: "A new Baldi’s Basics experience with modifiers."
@@ -182,10 +220,8 @@ const projects = [
         icon: "",
         tag: "Remake",
         image: "images/granny-remake.jpg",
-
         pc: "",
         mobile: "",
-
         desc: {
             pt: "Um projeto de remake de terror em desenvolvimento.",
             en: "A horror remake project currently in development."
@@ -198,10 +234,8 @@ const projects = [
         icon: "",
         tag: "Game",
         image: "images/momo-horror.jpg",
-
         pc: "",
         mobile: "",
-
         desc: {
             pt: "Um jogo original de terror desenvolvido pelo estúdio.",
             en: "An original horror game developed by the studio."
@@ -217,6 +251,17 @@ let language = "pt";
 let currentProjectIndex = null;
 let isAdmin = false;
 let latestUpdates = [];
+let postPreviewURL = null;
+
+const validPages = [
+    "home",
+    "mods",
+    "remakes",
+    "games",
+    "updates",
+    "posts",
+    "about"
+];
 
 /* =========================
    ELEMENTS
@@ -257,29 +302,60 @@ const updateDate = document.getElementById("updateDate");
 
 const updatesList = document.getElementById("updatesList");
 
+/* POSTS ELEMENTS */
+
+const createPostButton = document.getElementById("createPostButton");
+const postEditorDialog = document.getElementById("postEditorDialog");
+const postForm = document.getElementById("postForm");
+
+const postTitle = document.getElementById("postTitle");
+const postDescription = document.getElementById("postDescription");
+const postImage = document.getElementById("postImage");
+const postImagePreview = document.getElementById("postImagePreview");
+
+const postError = document.getElementById("postError");
+const publishPostButton = document.getElementById("publishPostButton");
+const cancelPostButton = document.getElementById("cancelPostButton");
+
+const postsList = document.getElementById("postsList");
+
+/* =========================
+   GENERAL HELPERS
+========================= */
+
+function getLocalDate() {
+    const now = new Date();
+
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+
+function translate(key) {
+    return translations[language][key] || key;
+}
+
 /* =========================
    SEASONAL THEMES
 ========================= */
 
 function updateSeasonalTheme() {
     const now = new Date();
-
     const month = now.getMonth();
     const day = now.getDate();
 
     let theme = "green";
 
-    // October: October 1 to November 1.
     if (month === 9) {
         theme = "orange";
     }
 
-    // Christmas: December 1 to December 26.
     if (month === 11 && day >= 1 && day <= 25) {
         theme = "christmas";
     }
 
-    // New Year: December 30 to January 2.
     if (
         (month === 11 && day >= 30) ||
         (month === 0 && day <= 1)
@@ -303,27 +379,14 @@ function updateSeasonalTheme() {
     if (themeColorMeta) {
         themeColorMeta.setAttribute("content", themeColors[theme]);
     }
-
-    console.log("MR GREEN: Tema ativo:", theme);
 }
 
 updateSeasonalTheme();
-
-// Atualiza o tema caso a página continue aberta durante a virada.
 setInterval(updateSeasonalTheme, 60 * 1000);
 
 /* =========================
    PAGE NAVIGATION
 ========================= */
-
-const validPages = [
-    "home",
-    "mods",
-    "remakes",
-    "games",
-    "updates",
-    "about"
-];
 
 function showPage(pageId, updateHistory = true) {
     if (!validPages.includes(pageId)) {
@@ -368,7 +431,6 @@ function createProjectCard(project, index) {
         image.src = project.image;
         image.alt = project.name;
         image.loading = "lazy";
-
         image.onerror = () => image.remove();
 
         cover.appendChild(image);
@@ -401,13 +463,12 @@ function createProjectCard(project, index) {
 
     const status = document.createElement("span");
     status.className = "status";
-    status.textContent = `● ${translations[language].soon}`;
+    status.textContent = `● ${translate("soon")}`;
 
     const details = document.createElement("button");
-
     details.type = "button";
     details.className = "project-link";
-    details.textContent = translations[language].viewDetails;
+    details.textContent = translate("viewDetails");
 
     details.addEventListener("click", () => {
         openProject(index);
@@ -427,17 +488,14 @@ function createProjectCard(project, index) {
 function renderGrid(gridId, items) {
     const grid = document.getElementById(gridId);
 
-    if (!grid) {
-        return;
-    }
+    if (!grid) return;
 
     grid.replaceChildren();
 
     if (items.length === 0) {
         const empty = document.createElement("div");
-
         empty.className = "empty";
-        empty.textContent = translations[language].empty;
+        empty.textContent = translate("empty");
 
         grid.appendChild(empty);
         return;
@@ -479,16 +537,11 @@ function renderProjects() {
 ========================= */
 
 function createDownloadButton(platform, url) {
-    const text = translations[language];
-
-    if (
-        typeof url === "string" &&
-        url.trim().toLowerCase() === "never"
-    ) {
+    if (typeof url === "string" && url.trim().toLowerCase() === "never") {
         const unavailable = document.createElement("span");
 
         unavailable.className = "download-button disabled";
-        unavailable.textContent = `${platform} — ${text.unavailable}`;
+        unavailable.textContent = `${platform} — ${translate("unavailable")}`;
 
         return unavailable;
     }
@@ -497,7 +550,7 @@ function createDownloadButton(platform, url) {
         const unavailable = document.createElement("span");
 
         unavailable.className = "download-button disabled";
-        unavailable.textContent = `${platform} — ${text.comingSoonDownload}`;
+        unavailable.textContent = `${platform} — ${translate("comingSoonDownload")}`;
 
         return unavailable;
     }
@@ -506,8 +559,7 @@ function createDownloadButton(platform, url) {
 
     link.className = "download-button";
     link.href = url;
-    link.download = "";
-    link.textContent = `${platform} — ${text.download}`;
+    link.textContent = `${platform} — ${translate("download")}`;
 
     return link;
 }
@@ -519,9 +571,7 @@ function createDownloadButton(platform, url) {
 function openProject(index) {
     const project = projects[index];
 
-    if (!project || !dialog) {
-        return;
-    }
+    if (!project || !dialog) return;
 
     currentProjectIndex = index;
 
@@ -557,91 +607,66 @@ function openProject(index) {
 }
 
 function closeProject() {
-    if (dialog && dialog.open) {
+    if (dialog?.open) {
         dialog.close();
     }
 
     currentProjectIndex = null;
 }
 
-if (closeDialogButton) {
-    closeDialogButton.addEventListener("click", closeProject);
-}
+closeDialogButton?.addEventListener("click", closeProject);
 
-if (dialog) {
-    dialog.addEventListener("click", event => {
-        if (event.target === dialog) {
-            closeProject();
-        }
-    });
-}
+dialog?.addEventListener("click", event => {
+    if (event.target === dialog) {
+        closeProject();
+    }
+});
 
 /* =========================
    ADMIN LOGIN
 ========================= */
 
-if (adminLoginButton && adminLoginDialog) {
-    adminLoginButton.addEventListener("click", () => {
-        if (loginError) {
-            loginError.textContent = "";
-        }
+adminLoginButton?.addEventListener("click", () => {
+    loginError.textContent = "";
+    adminLoginDialog.showModal();
+});
 
-        adminLoginDialog.showModal();
-    });
-}
+closeAdminLogin?.addEventListener("click", () => {
+    adminLoginDialog.close();
+});
 
-if (closeAdminLogin && adminLoginDialog) {
-    closeAdminLogin.addEventListener("click", () => {
+adminLoginDialog?.addEventListener("click", event => {
+    if (event.target === adminLoginDialog) {
         adminLoginDialog.close();
-    });
+    }
+});
 
-    adminLoginDialog.addEventListener("click", event => {
-        if (event.target === adminLoginDialog) {
-            adminLoginDialog.close();
-        }
-    });
-}
+adminLoginForm?.addEventListener("submit", async event => {
+    event.preventDefault();
+    loginError.textContent = "";
 
-/* =========================
-   ADMIN LOGIN FORM
-========================= */
+    try {
+        const result = await signInWithEmailAndPassword(
+            auth,
+            adminEmail.value.trim(),
+            adminPassword.value
+        );
 
-if (adminLoginForm) {
-    adminLoginForm.addEventListener("submit", async event => {
-        event.preventDefault();
-
-        if (loginError) {
-            loginError.textContent = "";
+        if (result.user.uid !== ADMIN_UID) {
+            await signOut(auth);
+            throw new Error("Unauthorized account.");
         }
 
-        try {
-            const result = await signInWithEmailAndPassword(
-                auth,
-                adminEmail.value.trim(),
-                adminPassword.value
-            );
+        adminLoginForm.reset();
+        adminLoginDialog.close();
 
-            if (result.user.uid !== ADMIN_UID) {
-                await signOut(auth);
-                throw new Error("Unauthorized account.");
-            }
+    } catch (error) {
+        console.error("Admin login error:", error);
 
-            adminLoginForm.reset();
-
-            if (adminLoginDialog) {
-                adminLoginDialog.close();
-            }
-
-        } catch (error) {
-            console.error("Admin login error:", error);
-
-            if (loginError) {
-                loginError.textContent =
-                    "Login failed. Check your email and password.";
-            }
-        }
-    });
-}
+        loginError.textContent =
+            "Login failed. Check your email and password.";
+    }
+});
 
 /* =========================
    AUTH STATE
@@ -650,16 +675,16 @@ if (adminLoginForm) {
 onAuthStateChanged(auth, user => {
     isAdmin = !!user && user.uid === ADMIN_UID;
 
-    console.log("Usuário conectado:", user);
-    console.log("UID:", user?.uid);
-    console.log("É administrador:", isAdmin);
-
     if (adminLoginButton) {
         adminLoginButton.hidden = isAdmin;
     }
 
     if (createUpdateButton) {
         createUpdateButton.hidden = !isAdmin;
+    }
+
+    if (createPostButton) {
+        createPostButton.hidden = !isAdmin;
     }
 
     if (adminLogoutButton) {
@@ -671,118 +696,76 @@ onAuthStateChanged(auth, user => {
    ADMIN LOGOUT
 ========================= */
 
-if (adminLogoutButton) {
-    adminLogoutButton.addEventListener("click", async () => {
-        try {
-            await signOut(auth);
-        } catch (error) {
-            console.error("Logout error:", error);
-        }
-    });
-}
+adminLogoutButton?.addEventListener("click", async () => {
+    try {
+        await signOut(auth);
+    } catch (error) {
+        console.error("Logout error:", error);
+    }
+});
 
 /* =========================
    CREATE UPDATE
 ========================= */
 
-function getLocalDate() {
-    const now = new Date();
+createUpdateButton?.addEventListener("click", () => {
+    updateError.textContent = "";
+    updateDate.value = getLocalDate();
+    updateEditorDialog.showModal();
+});
 
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
+closeUpdateEditor?.addEventListener("click", () => {
+    updateEditorDialog.close();
+});
 
-    return `${year}-${month}-${day}`;
-}
-
-if (createUpdateButton && updateEditorDialog) {
-    createUpdateButton.addEventListener("click", () => {
-        if (updateError) {
-            updateError.textContent = "";
-        }
-
-        if (updateDate) {
-            updateDate.value = getLocalDate();
-        }
-
-        updateEditorDialog.showModal();
-    });
-}
-
-if (closeUpdateEditor && updateEditorDialog) {
-    closeUpdateEditor.addEventListener("click", () => {
+updateEditorDialog?.addEventListener("click", event => {
+    if (event.target === updateEditorDialog) {
         updateEditorDialog.close();
-    });
-}
-
-if (updateEditorDialog) {
-    updateEditorDialog.addEventListener("click", event => {
-        if (event.target === updateEditorDialog) {
-            updateEditorDialog.close();
-        }
-    });
-}
+    }
+});
 
 /* =========================
    PUBLISH UPDATE
 ========================= */
 
-if (updateForm) {
-    updateForm.addEventListener("submit", async event => {
-        event.preventDefault();
+updateForm?.addEventListener("submit", async event => {
+    event.preventDefault();
+    updateError.textContent = "";
 
-        if (updateError) {
-            updateError.textContent = "";
-        }
+    if (!auth.currentUser || auth.currentUser.uid !== ADMIN_UID) {
+        updateError.textContent = "Administrator access required.";
+        return;
+    }
 
-        if (!auth.currentUser || auth.currentUser.uid !== ADMIN_UID) {
-            if (updateError) {
-                updateError.textContent = "Administrator access required.";
-            }
+    try {
+        await addDoc(collection(db, "updates"), {
+            title: updateTitle.value.trim(),
+            description: updateDescription.value.trim(),
+            date: updateDate.value,
+            createdAt: serverTimestamp()
+        });
 
-            return;
-        }
+        updateForm.reset();
+        updateEditorDialog.close();
 
-        try {
-            await addDoc(collection(db, "updates"), {
-                title: updateTitle.value.trim(),
-                description: updateDescription.value.trim(),
-                date: updateDate.value,
-                createdAt: serverTimestamp()
-            });
+    } catch (error) {
+        console.error("Update publishing error:", error);
 
-            updateForm.reset();
-
-            if (updateEditorDialog) {
-                updateEditorDialog.close();
-            }
-
-        } catch (error) {
-            console.error("Update publishing error:", error);
-
-            if (updateError) {
-                updateError.textContent =
-                    "Could not publish. Check your Firebase connection and permissions.";
-            }
-        }
-    });
-}
+        updateError.textContent =
+            "Could not publish. Check Firebase permissions.";
+    }
+});
 
 /* =========================
    DATE FORMATTING
 ========================= */
 
 function formatUpdateDate(dateString) {
-    if (!dateString) {
-        return "";
-    }
+    if (!dateString) return "";
 
-    // Evita problemas de fuso horário ao interpretar datas YYYY-MM-DD.
     const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateString);
 
-    if (!match) {
-        return dateString;
-    }
+    if (!match) return dateString;
 
     const year = Number(match[1]);
     const month = Number(match[2]);
@@ -810,13 +793,11 @@ function formatUpdateDate(dateString) {
 }
 
 /* =========================
-   RENDER FIRESTORE UPDATES
+   FIRESTORE UPDATES
 ========================= */
 
 function renderFirestoreUpdates() {
-    if (!updatesList) {
-        return;
-    }
+    if (!updatesList) return;
 
     updatesList
         .querySelectorAll("[data-firestore-update]")
@@ -824,7 +805,6 @@ function renderFirestoreUpdates() {
 
     latestUpdates.forEach(update => {
         const article = document.createElement("article");
-
         article.className = "update";
         article.dataset.firestoreUpdate = "true";
 
@@ -832,20 +812,15 @@ function renderFirestoreUpdates() {
         time.textContent = formatUpdateDate(update.date);
 
         const title = document.createElement("h3");
-        title.textContent = update.title;
+        title.textContent = update.title || "";
 
         const description = document.createElement("p");
-        description.textContent = update.description;
+        description.textContent = update.description || "";
 
         article.append(time, title, description);
-
         updatesList.appendChild(article);
     });
 }
-
-/* =========================
-   FIRESTORE LISTENER
-========================= */
 
 const updatesQuery = query(
     collection(db, "updates"),
@@ -854,7 +829,6 @@ const updatesQuery = query(
 
 onSnapshot(
     updatesQuery,
-
     snapshot => {
         latestUpdates = snapshot.docs.map(document => ({
             id: document.id,
@@ -862,17 +836,262 @@ onSnapshot(
         }));
 
         renderFirestoreUpdates();
-
-        console.log(
-            "MR GREEN: Atualizações carregadas:",
-            latestUpdates.length
-        );
     },
-
     error => {
         console.error("Could not load updates:", error);
     }
 );
+
+/* =========================
+   POSTS: IMAGE SETTINGS
+========================= */
+
+const allowedImageTypes = [
+    "image/png",
+    "image/jpeg",
+    "image/webp",
+    "image/gif",
+    "image/bmp",
+    "image/avif"
+];
+
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+
+/* =========================
+   POSTS: OPEN EDITOR
+========================= */
+
+createPostButton?.addEventListener("click", () => {
+    if (!isAdmin) return;
+
+    postError.textContent = "";
+    postForm.reset();
+
+    postImagePreview.hidden = true;
+    postImagePreview.removeAttribute("src");
+
+    postEditorDialog.showModal();
+});
+
+/* =========================
+   POSTS: CANCEL
+========================= */
+
+cancelPostButton?.addEventListener("click", () => {
+    postEditorDialog.close();
+});
+
+postEditorDialog?.addEventListener("click", event => {
+    if (event.target === postEditorDialog) {
+        postEditorDialog.close();
+    }
+});
+
+/* =========================
+   POSTS: IMAGE PREVIEW
+========================= */
+
+postImage?.addEventListener("change", () => {
+    const file = postImage.files[0];
+
+    postError.textContent = "";
+    postImagePreview.hidden = true;
+    postImagePreview.removeAttribute("src");
+
+    if (postPreviewURL) {
+        URL.revokeObjectURL(postPreviewURL);
+        postPreviewURL = null;
+    }
+
+    if (!file) return;
+
+    if (!allowedImageTypes.includes(file.type)) {
+        postError.textContent = translate("postImageError");
+        postImage.value = "";
+        return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE) {
+        postError.textContent = translate("postSizeError");
+        postImage.value = "";
+        return;
+    }
+
+    postPreviewURL = URL.createObjectURL(file);
+    postImagePreview.src = postPreviewURL;
+    postImagePreview.hidden = false;
+});
+
+/* =========================
+   POSTS: PUBLISH
+========================= */
+
+postForm?.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    postError.textContent = "";
+
+    const user = auth.currentUser;
+
+    if (!user || user.uid !== ADMIN_UID) {
+        postError.textContent = translate("postPermissionError");
+        return;
+    }
+
+    const title = postTitle.value.trim();
+    const description = postDescription.value.trim();
+    const imageFile = postImage.files[0];
+
+    if (!title || !description) {
+        postError.textContent = "Preencha o título e a descrição.";
+        return;
+    }
+
+    if (imageFile && !allowedImageTypes.includes(imageFile.type)) {
+        postError.textContent = translate("postImageError");
+        return;
+    }
+
+    if (imageFile && imageFile.size > MAX_IMAGE_SIZE) {
+        postError.textContent = translate("postSizeError");
+        return;
+    }
+
+    publishPostButton.disabled = true;
+    publishPostButton.textContent = translate("publishingPost");
+
+    try {
+        let imageUrl = "";
+
+        if (imageFile) {
+            const safeName = imageFile.name.replace(
+                /[^a-zA-Z0-9._-]/g,
+                "_"
+            );
+
+            const imageReference = storageRef(
+                storage,
+                `posts/${user.uid}/${Date.now()}_${safeName}`
+            );
+
+            await uploadBytes(imageReference, imageFile, {
+                contentType: imageFile.type
+            });
+
+            imageUrl = await getDownloadURL(imageReference);
+        }
+
+        await addDoc(collection(db, "posts"), {
+            title,
+            description,
+            imageUrl,
+            date: getLocalDate(),
+            createdAt: serverTimestamp()
+        });
+
+        postForm.reset();
+
+        postImagePreview.hidden = true;
+        postImagePreview.removeAttribute("src");
+
+        if (postPreviewURL) {
+            URL.revokeObjectURL(postPreviewURL);
+            postPreviewURL = null;
+        }
+
+        postEditorDialog.close();
+
+    } catch (error) {
+        console.error("Post publishing error:", error);
+        postError.textContent = translate("postPublishError");
+
+    } finally {
+        publishPostButton.disabled = false;
+        publishPostButton.textContent = translate("publishPost");
+    }
+});
+
+/* =========================
+   POSTS: RENDER
+========================= */
+
+function renderPosts(posts) {
+    if (!postsList) return;
+
+    postsList.replaceChildren();
+
+    if (posts.length === 0) {
+        const empty = document.createElement("p");
+        empty.textContent = translate("noPosts");
+
+        postsList.appendChild(empty);
+        return;
+    }
+
+    posts.forEach(post => {
+        const data = post.data();
+
+        const card = document.createElement("article");
+        card.className = "post-card";
+
+        if (data.imageUrl) {
+            const image = document.createElement("img");
+
+            image.src = data.imageUrl;
+            image.alt = data.title || "Post image";
+            image.loading = "lazy";
+
+            card.appendChild(image);
+        }
+
+        const date = document.createElement("time");
+        date.className = "post-date";
+        date.textContent = formatUpdateDate(data.date);
+
+        const title = document.createElement("h2");
+        title.textContent = data.title || "";
+
+        const description = document.createElement("p");
+        description.textContent = data.description || "";
+
+        card.append(date, title, description);
+        postsList.appendChild(card);
+    });
+}
+
+/* =========================
+   POSTS: FIRESTORE LISTENER
+========================= */
+
+const postsQuery = query(
+    collection(db, "posts"),
+    orderBy("createdAt", "desc")
+);
+
+onSnapshot(
+    postsQuery,
+    snapshot => {
+        renderPosts(snapshot.docs);
+    },
+    error => {
+        console.error("Could not load posts:", error);
+
+        if (postsList) {
+            postsList.textContent = translate("postLoadingError");
+        }
+    }
+);
+
+/* =========================
+   POSTS: CLEANUP PREVIEW
+========================= */
+
+postEditorDialog?.addEventListener("close", () => {
+    if (postPreviewURL) {
+        URL.revokeObjectURL(postPreviewURL);
+        postPreviewURL = null;
+    }
+});
 
 /* =========================
    LANGUAGE
@@ -893,7 +1112,6 @@ function changeLanguage() {
         }
     });
 
-    // Traduz as datas das atualizações fixas.
     document.querySelectorAll("time[data-date]").forEach(time => {
         time.textContent = formatUpdateDate(time.dataset.date);
     });
@@ -902,21 +1120,30 @@ function changeLanguage() {
         langToggle.textContent = language === "pt" ? "EN" : "PT";
     }
 
+    if (postTitle) {
+        postTitle.placeholder = translate("postTitlePlaceholder");
+    }
+
+    if (postDescription) {
+        postDescription.placeholder = translate("postDescriptionPlaceholder");
+    }
+
+    if (publishPostButton) {
+        publishPostButton.textContent = translate("publishPost");
+    }
+
     renderProjects();
     renderFirestoreUpdates();
 
     if (
         currentProjectIndex !== null &&
-        dialog &&
-        dialog.open
+        dialog?.open
     ) {
         openProject(currentProjectIndex);
     }
 }
 
-if (langToggle) {
-    langToggle.addEventListener("click", changeLanguage);
-}
+langToggle?.addEventListener("click", changeLanguage);
 
 /* =========================
    NAVIGATION EVENTS
@@ -925,7 +1152,6 @@ if (langToggle) {
 document.querySelectorAll("[data-page]").forEach(element => {
     element.addEventListener("click", event => {
         event.preventDefault();
-
         showPage(element.dataset.page);
     });
 });
@@ -962,7 +1188,7 @@ function initializeWebsite() {
         !closeDialogButton
     ) {
         console.error(
-            "MR GREEN: Um ou mais elementos HTML não foram encontrados."
+            "MR GREEN: A required HTML element is missing."
         );
 
         return;
@@ -972,12 +1198,19 @@ function initializeWebsite() {
 
     renderProjects();
 
-    // Formata as datas ao carregar a página.
     document.querySelectorAll("time[data-date]").forEach(time => {
         time.textContent = formatUpdateDate(time.dataset.date);
     });
 
-    console.log("MR GREEN: Website carregado com sucesso!");
+    if (postTitle) {
+        postTitle.placeholder = translate("postTitlePlaceholder");
+    }
+
+    if (postDescription) {
+        postDescription.placeholder = translate("postDescriptionPlaceholder");
+    }
+
+    console.log("MR GREEN: Website loaded successfully!");
 }
 
 initializeWebsite();
