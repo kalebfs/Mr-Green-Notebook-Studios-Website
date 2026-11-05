@@ -463,7 +463,7 @@ function createProjectCard(project, index) {
     footer.className = "card-foot";
 
     // Only Granny Redux displays the development status.
-    if (project.name === "Granny Redux") {
+    if (project.name === "granny redux") {
         const status = document.createElement("span");
         status.className = "status";
         status.textContent = `● ${translate("soon")}`;
