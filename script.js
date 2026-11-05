@@ -418,6 +418,7 @@ function showPage(pageId, updateHistory = true) {
    PROJECT CARDS
 ========================= */
 
+
 function createProjectCard(project, index) {
     const card = document.createElement("article");
     card.className = "card";
@@ -461,11 +462,13 @@ function createProjectCard(project, index) {
     const footer = document.createElement("div");
     footer.className = "card-foot";
 
+    // Only Granny Redux displays the development status.
     if (project.name === "Granny Redux") {
         const status = document.createElement("span");
         status.className = "status";
-        status.textContent = "● " + translations[language].soon;
-        card.appendChild(status);
+        status.textContent = `● ${translate("soon")}`;
+
+        footer.appendChild(status);
     }
 
     const details = document.createElement("button");
@@ -477,12 +480,14 @@ function createProjectCard(project, index) {
         openProject(index);
     });
 
-    footer.append(status, details);
+    footer.appendChild(details);
+
     body.append(tag, title, description, footer);
     card.append(cover, body);
 
     return card;
 }
+
 
 /* =========================
    RENDER PROJECTS
