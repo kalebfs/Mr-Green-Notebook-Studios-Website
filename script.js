@@ -461,9 +461,12 @@ function createProjectCard(project, index) {
     const footer = document.createElement("div");
     footer.className = "card-foot";
 
-    const status = document.createElement("span");
-    status.className = "status";
-    status.textContent = `● ${translate("soon")}`;
+    if (project.name === "Granny Redux") {
+        const status = document.createElement("span");
+        status.className = "status";
+        status.textContent = "● " + translations[language].soon;
+        card.appendChild(status);
+    }
 
     const details = document.createElement("button");
     details.type = "button";
