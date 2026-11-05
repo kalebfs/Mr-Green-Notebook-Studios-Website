@@ -269,32 +269,17 @@ function updateSeasonalTheme() {
 
     let theme = "green";
 
-    /*
-       OCTOBER THEME
-       October 1 at 00:00
-       Until November 1 at 00:00
-    */
-
+    // October: October 1 to November 1.
     if (month === 9) {
         theme = "orange";
     }
 
-    /*
-       CHRISTMAS THEME
-       December 1 at 00:00
-       Until December 26 at 00:00
-    */
-
+    // Christmas: December 1 to December 26.
     if (month === 11 && day >= 1 && day <= 25) {
         theme = "christmas";
     }
 
-    /*
-       NEW YEAR THEME
-       December 30 at 00:00
-       Until January 2 at 00:00
-    */
-
+    // New Year: December 30 to January 2.
     if (
         (month === 11 && day >= 30) ||
         (month === 0 && day <= 1)
@@ -324,7 +309,7 @@ function updateSeasonalTheme() {
 
 updateSeasonalTheme();
 
-// Atualiza o tema caso o visitante deixe a página aberta durante a virada.
+// Atualiza o tema caso a página continue aberta durante a virada.
 setInterval(updateSeasonalTheme, 60 * 1000);
 
 /* =========================
@@ -788,27 +773,40 @@ if (updateForm) {
 ========================= */
 
 function formatUpdateDate(dateString) {
-    const date = new Date(`${dateString}T12:00:00`);
+    if (!dateString) {
+        return "";
+    }
+
+    // Evita problemas de fuso horário ao interpretar datas YYYY-MM-DD.
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateString);
+
+    if (!match) {
+        return dateString;
+    }
+
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+
+    const date = new Date(year, month - 1, day, 12);
 
     if (Number.isNaN(date.getTime())) {
         return dateString;
     }
 
-    const locale = language === "pt" ? "pt-BR" : "en-US";
+    if (language === "pt") {
+        const monthName = new Intl.DateTimeFormat("pt-BR", {
+            month: "short"
+        }).format(date).replace(/\./g, "");
 
-    const day = new Intl.DateTimeFormat(locale, {
-        day: "2-digit"
-    }).format(date);
+        return `${String(day).padStart(2, "0")} ${monthName} ${year}`.toUpperCase();
+    }
 
-    const month = new Intl.DateTimeFormat(locale, {
+    const monthName = new Intl.DateTimeFormat("en-US", {
         month: "short"
-    }).format(date).replace(/\./g, "");
-
-    const year = new Intl.DateTimeFormat(locale, {
-        year: "numeric"
     }).format(date);
 
-    return `${day} ${month} ${year}`.toUpperCase();
+    return `${monthName.toUpperCase()} ${String(day).padStart(2, "0")} ${year}`;
 }
 
 /* =========================
@@ -895,7 +893,7 @@ function changeLanguage() {
         }
     });
 
-    // Traduz a data da primeira atualização fixa.
+    // Traduz as datas das atualizações fixas.
     document.querySelectorAll("time[data-date]").forEach(time => {
         time.textContent = formatUpdateDate(time.dataset.date);
     });
@@ -974,7 +972,7 @@ function initializeWebsite() {
 
     renderProjects();
 
-    // Formata a primeira data ao carregar a página.
+    // Formata as datas ao carregar a página.
     document.querySelectorAll("time[data-date]").forEach(time => {
         time.textContent = formatUpdateDate(time.dataset.date);
     });
