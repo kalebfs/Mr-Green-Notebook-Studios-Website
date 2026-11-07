@@ -1,3 +1,4 @@
+
 import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
@@ -17,78 +18,12 @@ import {
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
 
-export function initComments({
-    auth,
-    db,
-    adminUid,
-    getLanguage
-}) {
+export function initComments({ auth, db, adminUid, getLanguage }) {
     let currentUser = null;
 
     const listeners = new Map();
-    const elements = new Map();
-
     const profileListeners = new Map();
     const authorElements = new Map();
-
-
-    function watchCommentAuthor(uid, element, fallbackName) {
-        if (!uid || !element) return;
-
-        const avatar = element.querySelector(".comment-avatar");
-        const nameElement = element.querySelector(".comment-author-name");
-
-        if (!avatar || !nameElement) return;
-
-        if (!authorElements.has(uid)) {
-            authorElements.set(uid, new Set());
-        }
-
-        authorElements.get(uid).add(element);
-
-        if (profileListeners.has(uid)) return;
-
-        const profileRef = doc(db, "users", uid);
-
-        const unsubscribe = onSnapshot(profileRef, snapshot => {
-            const profile = snapshot.exists() ? snapshot.data() : {};
-
-            const name = profile.displayName || fallbackName || "User";
-            const photoURL = profile.photoURL || "";
-            const username = profile.username || "";
-
-            const elements = authorElements.get(uid);
-
-            if (!elements) return;
-
-            elements.forEach(authorElement => {
-                const authorAvatar = authorElement.querySelector(".comment-avatar");
-                const authorName = authorElement.querySelector(".comment-author-name");
-
-                if (!authorAvatar || !authorName) return;
-
-                authorName.textContent = name;
-
-                authorElement.title = username ? `@${username}` : name;
-
-                authorAvatar.replaceChildren();
-
-                if (photoURL) {
-                    const image = document.createElement("img");
-                    image.src = photoURL;
-                    image.alt = "";
-                    authorAvatar.appendChild(image);
-                } else {
-                    authorAvatar.textContent =
-                        name.charAt(0).toUpperCase() || "M";
-                }
-            });
-        }, error => {
-            console.error("Erro ao carregar autor do comentário:", error);
-        });
-
-        profileListeners.set(uid, unsubscribe);
-    }
 
     const translations = {
         pt: {
@@ -107,8 +42,6 @@ export function initComments({
             username: "Nome de usuário",
             loginTitle: "Entrar na conta",
             registerTitle: "Criar uma conta",
-            loginRequired: "Entre na sua conta para comentar.",
-            empty: "Escreva um comentário antes de publicar.",
             error: "Ocorreu um erro. Tente novamente."
         },
         en: {
@@ -127,8 +60,6 @@ export function initComments({
             username: "Username",
             loginTitle: "Log in",
             registerTitle: "Create an account",
-            loginRequired: "Log in to comment.",
-            empty: "Write a comment before posting.",
             error: "Something went wrong. Try again."
         }
     };
@@ -152,6 +83,72 @@ export function initComments({
         button.type = "button";
         button.addEventListener("click", callback);
         return button;
+    }
+
+    function watchCommentAuthor(uid, element, fallbackName) {
+        if (!uid || !element) return;
+
+        if (!authorElements.has(uid)) {
+            authorElements.set(uid, new Set());
+        }
+
+        authorElements.get(uid).add(element);
+
+        if (profileListeners.has(uid)) return;
+
+        const profileRef = doc(db, "users", uid);
+
+        const unsubscribe = onSnapshot(profileRef, snapshot => {
+            const profile = snapshot.exists()
+                ? snapshot.data()
+                : {};
+
+            const displayName =
+                profile.displayName ||
+                fallbackName ||
+                "User";
+
+            const username = profile.username || "user";
+            const photoURL = profile.photoURL || "";
+
+            const elements = authorElements.get(uid);
+
+            if (!elements) return;
+
+            elements.forEach(authorElement => {
+                const avatar = authorElement.querySelector(".comment-avatar");
+                const name = authorElement.querySelector(".comment-author-name");
+                const usernameElement = authorElement.querySelector(".comment-author-username");
+
+                if (!avatar || !name || !usernameElement) return;
+
+                name.textContent = displayName;
+                usernameElement.textContent = `@${username}`;
+
+                avatar.replaceChildren();
+
+                if (photoURL) {
+                    const image = document.createElement("img");
+                    image.src = photoURL;
+                    image.alt = `Foto de ${displayName}`;
+
+                    image.onerror = () => {
+                        image.remove();
+                        avatar.textContent =
+                            displayName.charAt(0).toUpperCase() || "U";
+                    };
+
+                    avatar.appendChild(image);
+                } else {
+                    avatar.textContent =
+                        displayName.charAt(0).toUpperCase() || "U";
+                }
+            });
+        }, error => {
+            console.error("Erro ao carregar perfil do autor:", error);
+        });
+
+        profileListeners.set(uid, unsubscribe);
     }
 
     function showDialog(title, fields, submitText, onSubmit) {
@@ -211,7 +208,6 @@ export function initComments({
 
                 await onSubmit(values);
                 overlay.remove();
-
             } catch (err) {
                 console.error(err);
                 error.textContent = err.message || t("error");
@@ -281,15 +277,11 @@ export function initComments({
             t("register"),
             async values => {
                 if (values.username.length < 2 || values.username.length > 40) {
-                    throw new Error(
-                        "O nome deve ter entre 2 e 40 caracteres."
-                    );
+                    throw new Error("O nome deve ter entre 2 e 40 caracteres.");
                 }
 
                 if (values.password.length < 6) {
-                    throw new Error(
-                        "A senha precisa ter pelo menos 6 caracteres."
-                    );
+                    throw new Error("A senha precisa ter pelo menos 6 caracteres.");
                 }
 
                 const result = await createUserWithEmailAndPassword(
@@ -316,15 +308,11 @@ export function initComments({
         accountActions.replaceChildren();
 
         if (currentUser) {
-            const name = currentUser.displayName ||
-                currentUser.email ||
-                "User";
-
             accountInfo.appendChild(
                 createElement(
                     "span",
                     "account-status",
-                    `${t("logged")}: ${name}`
+                    `${t("logged")}: ${currentUser.displayName || "User"}`
                 )
             );
 
@@ -333,7 +321,6 @@ export function initComments({
                     await signOut(auth);
                 })
             );
-
         } else {
             accountInfo.appendChild(
                 createElement("span", "account-status", t("guest"))
@@ -350,23 +337,31 @@ export function initComments({
         return collection(db, type, id, "comments");
     }
 
-
     function renderComments(type, id, card) {
+        const listenerKey = `${type}_${id}`;
+
+        if (listeners.has(listenerKey)) {
+            listeners.get(listenerKey)();
+            listeners.delete(listenerKey);
+        }
+
         const commentsSection = createElement("section", "post-comments");
 
-        const toggleButton = createButton("Comentários", "comments-toggle");
-        const commentsContent = createElement("div", "comments-content");
+        const toggleButton = createButton(
+            `${t("comments")} (0)`,
+            "comments-toggle"
+        );
 
+        const commentsContent = createElement("div", "comments-content");
         commentsContent.hidden = true;
 
         toggleButton.addEventListener("click", () => {
             const isOpen = commentsContent.hidden;
-
             commentsContent.hidden = !isOpen;
             toggleButton.classList.toggle("comments-open", isOpen);
         });
 
-        const heading = createElement("h3", "comments-heading", "Comentários");
+        const heading = createElement("h3", "comments-heading", t("comments"));
 
         const commentForm = createElement("form", "comment-form");
 
@@ -376,24 +371,15 @@ export function initComments({
         commentInput.rows = 3;
         commentInput.required = true;
 
-        const submitButton = createButton("Publicar comentário", "primary");
+        const submitButton = createButton(t("send"), "primary");
         submitButton.type = "submit";
 
         commentForm.append(commentInput, submitButton);
 
         const commentList = createElement("div", "comment-list");
 
-        commentsContent.append(
-            heading,
-            commentForm,
-            commentList
-        );
-
-        commentsSection.append(
-            toggleButton,
-            commentsContent
-        );
-
+        commentsContent.append(heading, commentForm, commentList);
+        commentsSection.append(toggleButton, commentsContent);
         card.appendChild(commentsSection);
 
         const commentsCollection = getCollection(type, id);
@@ -401,13 +387,14 @@ export function initComments({
         commentForm.addEventListener("submit", async event => {
             event.preventDefault();
 
-            if (!currentUser) {
+            const user = auth.currentUser;
+
+            if (!user) {
                 alert("Você precisa estar conectado para comentar.");
                 return;
             }
 
             const text = commentInput.value.trim();
-
             if (!text) return;
 
             try {
@@ -416,11 +403,8 @@ export function initComments({
 
                 await addDoc(commentsCollection, {
                     text,
-                    authorUid: currentUser.uid,
-                    authorName:
-                        currentUser.displayName ||
-                        currentUser.email ||
-                        "User",
+                    authorUid: user.uid,
+                    authorName: user.displayName || "User",
                     createdAt: serverTimestamp()
                 });
 
@@ -430,15 +414,9 @@ export function initComments({
                 alert("Não foi possível publicar o comentário.");
             } finally {
                 submitButton.disabled = false;
-                submitButton.textContent = "Publicar comentário";
+                submitButton.textContent = t("send");
             }
         });
-
-        const listenerKey = `${type}_${id}`;
-
-        if (listeners.has(listenerKey)) {
-            listeners.get(listenerKey)();
-        }
 
         const commentsQuery = query(
             commentsCollection,
@@ -448,59 +426,44 @@ export function initComments({
         const unsubscribe = onSnapshot(commentsQuery, snapshot => {
             commentList.replaceChildren();
 
-            heading.textContent = `Comentários (${snapshot.size})`;
-            toggleButton.textContent = `Comentários (${snapshot.size})`;
+            heading.textContent = `${t("comments")} (${snapshot.size})`;
+            toggleButton.textContent = `${t("comments")} (${snapshot.size})`;
 
             if (snapshot.empty) {
-                const emptyMessage = createElement(
-                    "p",
-                    "comments-empty",
-                    "Nenhum comentário ainda."
+                commentList.appendChild(
+                    createElement("p", "comments-empty", t("noComments"))
                 );
-
-                commentList.appendChild(emptyMessage);
                 return;
             }
 
             snapshot.forEach(commentDoc => {
                 const comment = commentDoc.data();
 
-                const commentItem = createElement(
-                    "article",
-                    "comment-item"
-                );
+                const commentItem = createElement("article", "comment-item");
+                const commentHeader = createElement("div", "comment-header");
 
-                const commentHeader = createElement(
-                    "div",
-                    "comment-header"
-                );
-
-                // Botão do autor.
-                const author = createElement(
-                    "button",
-                    "comment-author"
-                );
-
+                const author = createElement("button", "comment-author");
                 author.type = "button";
 
-                // Avatar.
-                const avatar = createElement(
-                    "span",
-                    "comment-avatar",
-                    "M"
-                );
+                const avatar = createElement("span", "comment-avatar");
+                avatar.textContent = "U";
 
-                // Nome do autor.
+                const authorInfo = createElement("span", "comment-author-info");
+
                 const authorName = createElement(
                     "span",
                     "comment-author-name",
                     comment.authorName || "User"
                 );
 
-                author.append(
-                    avatar,
-                    authorName
+                const username = createElement(
+                    "span",
+                    "comment-author-username",
+                    "@user"
                 );
+
+                authorInfo.append(authorName, username);
+                author.append(avatar, authorInfo);
 
                 if (comment.authorUid) {
                     watchCommentAuthor(
@@ -515,16 +478,13 @@ export function initComments({
 
                     document.dispatchEvent(
                         new CustomEvent("mrgreen:view-profile", {
-                            detail: {
-                                uid: comment.authorUid
-                            }
+                            detail: { uid: comment.authorUid }
                         })
                     );
                 });
 
                 commentHeader.appendChild(author);
 
-                // Botão de excluir.
                 const canDelete =
                     currentUser &&
                     (
@@ -534,35 +494,21 @@ export function initComments({
 
                 if (canDelete) {
                     const deleteButton = createButton(
-                        "Excluir",
+                        t("delete"),
                         "comment-delete"
                     );
 
-                    deleteButton.type = "button";
-
                     deleteButton.addEventListener("click", async () => {
-                        const confirmed = confirm(
-                            "Tem certeza que deseja excluir este comentário?"
-                        );
-
-                        if (!confirmed) return;
+                        if (!confirm("Tem certeza que deseja excluir este comentário?")) {
+                            return;
+                        }
 
                         try {
                             await deleteDoc(
-                                doc(
-                                    db,
-                                    type,
-                                    id,
-                                    "comments",
-                                    commentDoc.id
-                                )
+                                doc(db, type, id, "comments", commentDoc.id)
                             );
                         } catch (error) {
-                            console.error(
-                                "Erro ao excluir comentário:",
-                                error
-                            );
-
+                            console.error("Erro ao excluir comentário:", error);
                             alert("Não foi possível excluir o comentário.");
                         }
                     });
@@ -570,25 +516,19 @@ export function initComments({
                     commentHeader.appendChild(deleteButton);
                 }
 
-                // Texto do comentário.
                 const commentText = createElement(
                     "p",
                     "comment-text",
                     comment.text || ""
                 );
 
-                commentItem.append(
-                    commentHeader,
-                    commentText
-                );
-
+                commentItem.append(commentHeader, commentText);
                 commentList.appendChild(commentItem);
             });
         }, error => {
             console.error("Erro ao carregar comentários:", error);
 
             commentList.replaceChildren();
-
             commentList.appendChild(
                 createElement(
                     "p",
@@ -603,38 +543,19 @@ export function initComments({
         return commentsSection;
     }
 
-    function stopCommentListeners() {
-        listeners.forEach(unsubscribe => unsubscribe());
-        listeners.clear();
-        elements.clear();
-        profileListeners.forEach(unsubscribe => unsubscribe());
-        profileListeners.clear();
-        authorElements.clear();
-    }
-
     function refreshLanguage() {
         renderAccount();
-
-        elements.forEach(({ type, id, card }) => {
-            renderComments(type, id, card);
-        });
     }
 
     onAuthStateChanged(auth, user => {
         currentUser = user;
-
         renderAccount();
-
-        elements.forEach(({ type, id, card }) => {
-            renderComments(type, id, card);
-        });
     });
 
     renderAccount();
 
     return {
         renderComments,
-        stopCommentListeners,
         refreshLanguage,
         accountBar
     };
