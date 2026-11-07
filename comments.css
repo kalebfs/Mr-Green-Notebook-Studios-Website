@@ -1,0 +1,235 @@
+.account-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px;
+    margin: 20px 0;
+    background: var(--bg, #111016);
+    border: 1px solid var(--line, #34303d);
+    border-radius: 12px;
+    color: var(--text, #ffffff);
+}
+
+.account-info {
+    font-size: 14px;
+    color: var(--muted, #b8b2c2);
+}
+
+.account-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.account-button,
+.comment-submit,
+.comments-submit {
+    border: none;
+    border-radius: 7px;
+    padding: 10px 16px;
+    background: var(--accent, #a985e8);
+    color: #ffffff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.2s, transform 0.2s;
+}
+
+    .account-button:hover,
+    .comment-submit:hover,
+    .comments-submit:hover {
+        filter: brightness(1.15);
+        transform: translateY(-1px);
+    }
+
+.register-button {
+    background: #6846a5;
+}
+
+.logout-button {
+    background: #8e394b;
+}
+
+.post-comments {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line, #34303d);
+}
+
+.comments-heading {
+    margin: 0 0 15px;
+    color: var(--text, #ffffff);
+    font-size: 18px;
+}
+
+.comment-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.comment-input,
+.comments-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px;
+    border: 1px solid var(--line, #34303d);
+    border-radius: 8px;
+    background: var(--bg, #111016);
+    color: var(--text, #ffffff);
+    font: inherit;
+    resize: vertical;
+}
+
+    .comment-input:focus,
+    .comments-input:focus {
+        outline: none;
+        border-color: var(--accent, #a985e8);
+    }
+
+.comment-submit {
+    align-self: flex-end;
+}
+
+.comments-login-message,
+.comments-empty {
+    color: var(--muted, #b8b2c2);
+    font-size: 14px;
+    margin: 12px 0;
+}
+
+.comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.comment-item {
+    padding: 13px;
+    border: 1px solid var(--line, #34303d);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.comment-author {
+    color: var(--accent, #a985e8);
+    font-size: 14px;
+}
+
+.comment-text {
+    margin: 9px 0 0;
+    color: var(--text, #ffffff);
+    font-size: 14px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+.comment-delete {
+    border: none;
+    background: transparent;
+    color: #e16b7b;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+    .comment-delete:hover {
+        text-decoration: underline;
+    }
+
+.comments-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.78);
+    backdrop-filter: blur(5px);
+}
+
+.comments-modal {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    padding: 24px;
+    border: 1px solid var(--line, #34303d);
+    border-radius: 14px;
+    background: var(--bg, #111016);
+    color: var(--text, #ffffff);
+    box-sizing: border-box;
+}
+
+.comments-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+    .comments-modal-header h2 {
+        margin: 0;
+        font-size: 21px;
+    }
+
+.comments-modal-close {
+    border: none;
+    background: transparent;
+    color: var(--text, #ffffff);
+    font-size: 27px;
+    cursor: pointer;
+}
+
+.comments-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-bottom: 15px;
+    font-size: 13px;
+}
+
+.comments-submit {
+    width: 100%;
+    margin-top: 8px;
+}
+
+    .comments-submit:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+.comments-error {
+    color: #e16b7b;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+    .account-bar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .account-actions {
+        width: 100%;
+    }
+
+    .account-button {
+        flex: 1;
+    }
+
+    .comments-modal {
+        padding: 18px;
+    }
+}

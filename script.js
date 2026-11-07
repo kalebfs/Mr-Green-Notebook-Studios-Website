@@ -1,6 +1,8 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
 
+import { initComments } from "./comments.js";
+
 import {
     getAuth,
     onAuthStateChanged,
@@ -356,6 +358,14 @@ const publishPostButton = document.getElementById("publishPostButton");
 const cancelPostButton = document.getElementById("cancelPostButton");
 
 const postsList = document.getElementById("postsList");
+
+const commentsFeature = initComments({
+    auth,
+    db,
+    adminUid: ADMIN_UID,
+    postsList,
+    getLanguage: () => language
+});
 
 /* =========================
    GENERAL HELPERS
@@ -984,7 +994,7 @@ onAuthStateChanged(auth, user => {
     isAdmin = !!user && user.uid === ADMIN_UID;
 
     if (adminLoginButton) {
-        adminLoginButton.hidden = isAdmin;
+        adminLoginButton.hidden = !!user;
     }
 
     if (createUpdateButton) {
@@ -1406,12 +1416,17 @@ async function renderPosts(posts) {
     const renderVersion = ++postsRenderVersion;
     const targetLanguage = language;
 
+    commentsFeature.stopCommentListeners();
     postsList.replaceChildren();
 
     if (posts.length === 0) {
         const empty = document.createElement("p");
         empty.textContent = translate("noPosts");
-        postsList.appendChild(empty);
+        card.dataset.postId = post.id;
+
+        postsList.appendChild(card);
+
+        commentsFeature.renderPostComments(post.id, card);
         return;
     }
 
@@ -1604,6 +1619,7 @@ function changeLanguage(nextLanguage) {
     renderProjects();
     renderFirestoreUpdates();
     renderLatestPosts();
+    commentsFeature.refreshLanguage();
 
     if (
         currentProjectIndex !== null &&
