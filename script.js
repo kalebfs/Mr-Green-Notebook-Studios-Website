@@ -15,14 +15,16 @@ import {
     onSnapshot,
     query,
     orderBy,
-    serverTimestamp
+    serverTimestamp,
+    deleteDoc,
+    doc
 } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
-
 import {
     getStorage,
     ref as storageRef,
     uploadBytes,
-    getDownloadURL
+    getDownloadURL,
+    deleteObject
 } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-storage.js";
 
 /* =========================
@@ -698,6 +700,10 @@ onAuthStateChanged(auth, user => {
     if (adminLogoutButton) {
         adminLogoutButton.hidden = !isAdmin;
     }
+
+    // Atualiza os botões de deletar
+    renderFirestoreUpdates();
+    renderLatestPosts();
 });
 
 /* =========================
@@ -826,6 +832,33 @@ function renderFirestoreUpdates() {
         description.textContent = update.description || "";
 
         article.append(time, title, description);
+
+        if (isAdmin) {
+            const deleteButton = document.createElement("button");
+
+            deleteButton.type = "button";
+            deleteButton.className = "delete-button";
+            deleteButton.textContent = "Delete";
+
+            deleteButton.addEventListener("click", async () => {
+                const confirmed = confirm(
+                    "Are you sure you want to delete this update?"
+                );
+
+                if (!confirmed) return;
+
+                try {
+                    await deleteDoc(doc(db, "updates", update.id));
+                } catch (error) {
+                    console.error("Update deletion error:", error);
+
+                    alert("Could not delete this update. Check Firebase permissions.");
+                }
+            });
+
+            article.appendChild(deleteButton);
+        }
+
         updatesList.appendChild(article);
     });
 }
@@ -971,6 +1004,7 @@ postForm?.addEventListener("submit", async event => {
     try {
         let imageUrl = "";
 
+        // Upload image
         if (imageFile) {
             const safeName = imageFile.name.replace(
                 /[^a-zA-Z0-9._-]/g,
@@ -989,13 +1023,20 @@ postForm?.addEventListener("submit", async event => {
             imageUrl = await getDownloadURL(imageReference);
         }
 
-        await addDoc(collection(db, "posts"), {
-            title,
-            description,
-            imageUrl,
-            date: getLocalDate(),
-            createdAt: serverTimestamp()
-        });
+        // Save post in Firestore
+        const postReference = await addDoc(
+            collection(db, "posts"),
+            {
+                title: title,
+                description: description,
+                imageUrl: imageUrl,
+                date: getLocalDate(),
+                createdAt: serverTimestamp(),
+                author: user.uid
+            }
+        );
+
+        console.log("Post published successfully:", postReference.id);
 
         postForm.reset();
 
@@ -1011,7 +1052,9 @@ postForm?.addEventListener("submit", async event => {
 
     } catch (error) {
         console.error("Post publishing error:", error);
-        postError.textContent = translate("postPublishError");
+
+        postError.textContent =
+            "Error: " + (error.code || error.message || "Unknown Firebase error");
 
     } finally {
         publishPostButton.disabled = false;
@@ -1063,6 +1106,54 @@ function renderPosts(posts) {
         description.textContent = data.description || "";
 
         card.append(date, title, description);
+
+        // ADMIN DELETE BUTTON
+        if (isAdmin) {
+            const deleteButton = document.createElement("button");
+
+            deleteButton.type = "button";
+            deleteButton.className = "delete-button";
+            deleteButton.textContent = "Delete";
+
+            deleteButton.addEventListener("click", async () => {
+                const confirmed = confirm(
+                    "Are you sure you want to delete this post?"
+                );
+
+                if (!confirmed) return;
+
+                deleteButton.disabled = true;
+
+                try {
+                    // Delete image from Storage
+                    if (data.imageUrl) {
+                        try {
+                            await deleteObject(
+                                storageRef(storage, data.imageUrl)
+                            );
+                        } catch (imageError) {
+                            console.warn(
+                                "Could not delete post image:",
+                                imageError
+                            );
+                        }
+                    }
+
+                    // Delete post from Firestore
+                    await deleteDoc(doc(db, "posts", post.id));
+
+                } catch (error) {
+                    console.error("Post deletion error:", error);
+
+                    alert("Could not delete post. Check Firebase permissions.");
+
+                    deleteButton.disabled = false;
+                }
+            });
+
+            card.appendChild(deleteButton);
+        }
+
         postsList.appendChild(card);
     });
 }
@@ -1070,6 +1161,12 @@ function renderPosts(posts) {
 /* =========================
    POSTS: FIRESTORE LISTENER
 ========================= */
+
+let latestPosts = [];
+
+function renderLatestPosts() {
+    renderPosts(latestPosts);
+}
 
 const postsQuery = query(
     collection(db, "posts"),
@@ -1079,7 +1176,9 @@ const postsQuery = query(
 onSnapshot(
     postsQuery,
     snapshot => {
-        renderPosts(snapshot.docs);
+        latestPosts = snapshot.docs;
+
+        renderLatestPosts();
     },
     error => {
         console.error("Could not load posts:", error);

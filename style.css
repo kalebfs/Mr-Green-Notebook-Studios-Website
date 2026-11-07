@@ -1,3 +1,4 @@
+
 :root {
     --bg: #080d09;
     --panel: #101a12;
@@ -42,6 +43,8 @@
     --modal-backdrop: #000c;
 }
 
+/* GLOBAL */
+
 * {
     box-sizing: border-box;
 }
@@ -58,7 +61,8 @@ body {
     font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
-button, a {
+button,
+a {
     font: inherit;
 }
 
@@ -128,7 +132,8 @@ nav {
     flex-wrap: wrap;
 }
 
-.nav-btn, .lang-btn {
+.nav-btn,
+.lang-btn {
     padding: 10px 11px;
     border: 1px solid transparent;
     border-radius: 9px;
@@ -258,7 +263,8 @@ h1 {
 
 /* BUTTONS */
 
-.primary, .secondary {
+.primary,
+.secondary {
     padding: 12px 17px;
     border: 1px solid var(--line);
     border-radius: 10px;
@@ -441,7 +447,8 @@ h2 {
 
 /* ABOUT AND UPDATES */
 
-.about-box, .update {
+.about-box,
+.update {
     margin: 14px 0;
     padding: 22px;
     border: 1px solid var(--line);
@@ -450,11 +457,13 @@ h2 {
     transition: .2s;
 }
 
-    .about-box:hover, .update:hover {
+    .about-box:hover,
+    .update:hover {
         border-color: var(--about-hover);
     }
 
-    .about-box p, .update p {
+    .about-box p,
+    .update p {
         margin-bottom: 0;
         color: var(--muted);
         line-height: 1.8;
@@ -612,6 +621,33 @@ h2 {
     font-size: 13px;
 }
 
+/* DELETE BUTTON */
+
+.delete-button {
+    display: inline-block;
+    margin-top: 15px;
+    padding: 9px 16px;
+    background: #8b2635;
+    color: white;
+    border: 1px solid #c94355;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: .2s;
+}
+
+    .delete-button:hover {
+        background: #c02e43;
+        transform: translateY(-2px);
+    }
+
+    .delete-button:disabled {
+        opacity: .5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
 /* FOOTER */
 
 footer {
@@ -644,7 +680,8 @@ footer {
         padding-bottom: 5px;
     }
 
-    .nav-btn, .lang-btn {
+    .nav-btn,
+    .lang-btn {
         flex-shrink: 0;
         white-space: nowrap;
     }
