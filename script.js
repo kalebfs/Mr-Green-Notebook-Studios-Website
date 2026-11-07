@@ -303,12 +303,7 @@ const validPages = [
     "posts",
     "about",
     "profile"
-]; const commentsFeature = initComments({
-    auth,
-    db,
-    adminUid: ADMIN_UID,
-    getLanguage: () => language
-});
+];
 
 /* =========================
    ELEMENTS
