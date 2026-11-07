@@ -274,9 +274,7 @@ function getSavedLanguage() {
     try {
         const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
 
-        return saved === "en" || saved === "pt"
-            ? saved
-            : "pt";
+        return saved === "en" || saved === "pt" ? saved : "pt";
     } catch {
         return "pt";
     }
@@ -342,8 +340,6 @@ const updateDate = document.getElementById("updateDate");
 const updateSourceLanguage = document.getElementById("updateSourceLanguage");
 
 const updatesList = document.getElementById("updatesList");
-
-/* POSTS ELEMENTS */
 
 const createPostButton = document.getElementById("createPostButton");
 const postEditorDialog = document.getElementById("postEditorDialog");
@@ -543,11 +539,16 @@ async function translateText(text, sourceLanguage, targetLanguage) {
     }
 }
 
+/*
+   IMPORTANTE:
+   Se sourceLanguage não existir, a publicação
+   será considerada em português.
+*/
+
 async function getLocalizedContent(data, field, targetLanguage) {
     const originalText = data[field] || "";
 
-    const sourceLanguage =
-        data.sourceLanguage === "en" ? "en" : "pt";
+    const sourceLanguage = data.sourceLanguage === "en" ? "en" : "pt";
 
     return translateText(
         originalText,
@@ -1060,11 +1061,13 @@ async function renderFirestoreUpdates() {
 
             deleteButton.type = "button";
             deleteButton.className = "delete-button";
-            deleteButton.textContent = "Delete";
+            deleteButton.textContent = language === "pt" ? "Excluir" : "Delete";
 
             deleteButton.addEventListener("click", async () => {
                 const confirmed = confirm(
-                    "Are you sure you want to delete this update?"
+                    language === "pt"
+                        ? "Tem certeza de que deseja excluir esta atualização?"
+                        : "Are you sure you want to delete this update?"
                 );
 
                 if (!confirmed) return;
@@ -1074,7 +1077,11 @@ async function renderFirestoreUpdates() {
                 } catch (error) {
                     console.error("Update deletion error:", error);
 
-                    alert("Could not delete this update. Check Firebase permissions.");
+                    alert(
+                        language === "pt"
+                            ? "Não foi possível excluir esta atualização."
+                            : "Could not delete this update."
+                    );
                 }
             });
 
@@ -1083,16 +1090,28 @@ async function renderFirestoreUpdates() {
 
         updatesList.appendChild(article);
 
-        if (
-            update.sourceLanguage &&
-            update.sourceLanguage !== targetLanguage
-        ) {
+        /*
+           CORREÇÃO:
+           Antes, só traduzia se sourceLanguage existisse.
+           Agora, documentos antigos sem esse campo
+           também são traduzidos como português.
+        */
+
+        const sourceLanguage =
+            update.sourceLanguage === "en" ? "en" : "pt";
+
+        if (sourceLanguage !== targetLanguage) {
             const [translatedTitle, translatedDescription] = await Promise.all([
                 getLocalizedContent(update, "title", targetLanguage),
                 getLocalizedContent(update, "description", targetLanguage)
             ]);
 
-            if (renderVersion !== updatesRenderVersion) return;
+            if (
+                renderVersion !== updatesRenderVersion ||
+                targetLanguage !== language
+            ) {
+                return;
+            }
 
             title.textContent = translatedTitle;
             description.textContent = translatedDescription;
@@ -1338,11 +1357,13 @@ async function renderPosts(posts) {
 
             deleteButton.type = "button";
             deleteButton.className = "delete-button";
-            deleteButton.textContent = "Delete";
+            deleteButton.textContent = language === "pt" ? "Excluir" : "Delete";
 
             deleteButton.addEventListener("click", async () => {
                 const confirmed = confirm(
-                    "Are you sure you want to delete this post?"
+                    language === "pt"
+                        ? "Tem certeza de que deseja excluir este post?"
+                        : "Are you sure you want to delete this post?"
                 );
 
                 if (!confirmed) return;
@@ -1354,7 +1375,11 @@ async function renderPosts(posts) {
                 } catch (error) {
                     console.error("Post deletion error:", error);
 
-                    alert("Could not delete post. Check Firebase permissions.");
+                    alert(
+                        language === "pt"
+                            ? "Não foi possível excluir o post."
+                            : "Could not delete post."
+                    );
 
                     deleteButton.disabled = false;
                 }
@@ -1365,16 +1390,27 @@ async function renderPosts(posts) {
 
         postsList.appendChild(card);
 
-        if (
-            data.sourceLanguage &&
-            data.sourceLanguage !== targetLanguage
-        ) {
+        /*
+           CORREÇÃO:
+           Posts antigos sem sourceLanguage também
+           são tratados como português.
+        */
+
+        const sourceLanguage =
+            data.sourceLanguage === "en" ? "en" : "pt";
+
+        if (sourceLanguage !== targetLanguage) {
             const [translatedTitle, translatedDescription] = await Promise.all([
                 getLocalizedContent(data, "title", targetLanguage),
                 getLocalizedContent(data, "description", targetLanguage)
             ]);
 
-            if (renderVersion !== postsRenderVersion) return;
+            if (
+                renderVersion !== postsRenderVersion ||
+                targetLanguage !== language
+            ) {
+                return;
+            }
 
             title.textContent = translatedTitle;
             description.textContent = translatedDescription;
@@ -1476,6 +1512,12 @@ function changeLanguage(nextLanguage) {
     applyStaticTranslations();
 
     renderProjects();
+
+    /*
+       Recarrega todas as atualizações e posts
+       para aplicar o idioma selecionado.
+    */
+
     renderFirestoreUpdates();
     renderLatestPosts();
 
