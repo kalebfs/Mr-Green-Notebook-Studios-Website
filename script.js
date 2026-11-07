@@ -20,7 +20,9 @@ import {
     orderBy,
     serverTimestamp,
     deleteDoc,
-    doc
+    doc,
+    getDoc,
+    setDoc
 } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
 
 /* =========================
@@ -371,27 +373,6 @@ const commentsFeature = initComments({
     adminUid: ADMIN_UID,
     getLanguage: () => language
 });
-
-// Comentários das atualizações iniciais do site
-const initialUpdates = document.querySelectorAll(
-    "#updatesList > article.update:not([data-firestore-update])"
-);
-
-if (initialUpdates[0]) {
-    commentsFeature.renderComments(
-        "updates",
-        "initial-site-created",
-        initialUpdates[0]
-    );
-}
-
-if (initialUpdates[1]) {
-    commentsFeature.renderComments(
-        "updates",
-        "coming-soon",
-        initialUpdates[1]
-    );
-}
 
 const profilesFeature = initProfiles({
     auth,
@@ -1153,7 +1134,9 @@ async function renderFirestoreUpdates() {
         article.dataset.firestoreUpdate = "true";
 
         const time = document.createElement("time");
-        time.textContent = formatUpdateDate(update.date);
+        time.textContent = update.dateLabelKey
+            ? translations[language][update.dateLabelKey]
+            : formatUpdateDate(update.date);
 
         const title = document.createElement("h3");
         title.textContent = update.title || "";
@@ -1700,6 +1683,10 @@ function initializeWebsite() {
 
     applyStaticTranslations();
 
+    migrateInitialUpdates().catch(error => {
+        console.error("Erro ao migrar atualizações iniciais:", error);
+    });
+
     showPage(getPageFromHash(), false);
 
     renderProjects();
@@ -1707,6 +1694,40 @@ function initializeWebsite() {
     renderLatestPosts();
 
     console.log("MR GREEN: Website loaded successfully!");
+}
+
+async function migrateInitialUpdates() {
+    const initialUpdates = [
+        {
+            id: "initial-site-created",
+            title: translations.pt.updateOneTitle,
+            description: translations.pt.updateOneText,
+            date: "2026-11-04",
+            sourceLanguage: "pt"
+        },
+        {
+            id: "coming-soon",
+            title: translations.pt.updateTwoTitle,
+            description: translations.pt.updateTwoText,
+            date: "",
+            dateLabelKey: "comingSoon",
+            sourceLanguage: "pt"
+        }
+    ];
+
+    for (const update of initialUpdates) {
+        const updateRef = doc(db, "updates", update.id);
+        const existingUpdate = await getDoc(updateRef);
+
+        if (!existingUpdate.exists()) {
+            const { id, ...data } = update;
+
+            await setDoc(updateRef, {
+                ...data,
+                createdAt: serverTimestamp()
+            });
+        }
+    }
 }
 
 initializeWebsite();
