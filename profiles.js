@@ -1,4 +1,3 @@
-
 import {
     doc,
     getDoc,
@@ -6,6 +5,11 @@ import {
     serverTimestamp,
     onSnapshot
 } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
+
+import {
+    onAuthStateChanged,
+    updateProfile
+} from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
 
 export function initProfiles({ auth, db, accountBar, getLanguage }) {
 
@@ -28,6 +32,7 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
     profileButton.type = "button";
     profileButton.className = "account-button";
     profileButton.textContent = "Meu perfil";
+    profileButton.hidden = true;
 
     accountBar?.querySelector(".account-actions")?.appendChild(profileButton);
 
@@ -66,9 +71,15 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
             return existing.data();
         }
 
-        let base = slugify(user.displayName || user.email?.split("@")[0] || "user");
+        let base = slugify(
+            user.displayName ||
+            user.email?.split("@")[0] ||
+            "user"
+        );
 
-        if (base.length < 3) base = "user";
+        if (base.length < 3) {
+            base = "user";
+        }
 
         return runTransaction(db, async transaction => {
 
@@ -99,7 +110,9 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
             }
 
             if (!available) {
-                throw new Error("Não foi possível gerar um arroba disponível.");
+                throw new Error(
+                    "Não foi possível gerar um arroba disponível."
+                );
             }
 
             const profile = {
@@ -143,7 +156,9 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
             const userSnapshot = await transaction.get(userRef);
 
             if (!userSnapshot.exists()) {
-                throw new Error("Seu perfil ainda não foi criado. Tente novamente.");
+                throw new Error(
+                    "Seu perfil ainda não foi criado. Tente novamente."
+                );
             }
 
             const oldProfile = userSnapshot.data();
@@ -167,7 +182,10 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
                 : null;
 
             if (oldUsernameRef && oldUsername !== username) {
-                const oldUsernameSnapshot = await transaction.get(oldUsernameRef);
+
+                const oldUsernameSnapshot = await transaction.get(
+                    oldUsernameRef
+                );
 
                 if (
                     oldUsernameSnapshot.exists() &&
@@ -192,7 +210,11 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
             });
         });
 
-        return { displayName, username, bio };
+        return {
+            displayName,
+            username,
+            bio
+        };
     }
 
     function renderProfile(profile, isOwner) {
@@ -211,7 +233,8 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
         const avatar = document.createElement("div");
         avatar.className = "profile-avatar";
         avatar.textContent = (profile.displayName || "?")
-            .charAt(0).toUpperCase();
+            .charAt(0)
+            .toUpperCase();
 
         const name = document.createElement("h2");
         name.textContent = profile.displayName || "User";
@@ -226,7 +249,9 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
 
         const label = document.createElement("span");
         label.className = "profile-label";
-        label.textContent = isOwner ? "SEU PERFIL" : "PERFIL PÚBLICO";
+        label.textContent = isOwner
+            ? "SEU PERFIL"
+            : "PERFIL PÚBLICO";
 
         card.append(label, avatar, name, username, bio);
         content.appendChild(card);
@@ -236,7 +261,9 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
 
     function openEditor() {
 
-        if (!auth.currentUser || !currentProfile) return;
+        if (!auth.currentUser || !currentProfile) {
+            return;
+        }
 
         errorElement.textContent = "";
 
@@ -249,7 +276,9 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
 
     async function openProfile(uid) {
 
-        if (!uid) return;
+        if (!uid) {
+            return;
+        }
 
         viewedUid = uid;
 
@@ -260,18 +289,23 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
 
         const isOwner = auth.currentUser?.uid === uid;
 
+        if (isOwner) {
+            currentProfile = null;
+        }
+
         content.textContent = "Carregando perfil...";
         editButton.hidden = true;
-
-        if (profileButton.dataset.navigation !== "ready") {
-            profileButton.dataset.navigation = "ready";
-        }
 
         document.querySelector('[data-page="profile"]')?.click();
 
         profileListener = onSnapshot(
             doc(db, "users", uid),
+
             snapshot => {
+
+                if (viewedUid !== uid) {
+                    return;
+                }
 
                 if (!snapshot.exists()) {
                     renderProfile(null, false);
@@ -286,14 +320,17 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
 
                 renderProfile(profile, isOwner);
             },
+
             error => {
                 console.error("Profile loading error:", error);
-                content.textContent = "Não foi possível carregar este perfil.";
+                content.textContent =
+                    "Não foi possível carregar este perfil.";
             }
         );
     }
 
     profileButton.addEventListener("click", () => {
+
         if (auth.currentUser) {
             openProfile(auth.currentUser.uid);
         }
@@ -306,7 +343,10 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
     });
 
     editor.addEventListener("click", event => {
-        if (event.target === editor) editor.close();
+
+        if (event.target === editor) {
+            editor.close();
+        }
     });
 
     form.addEventListener("submit", async event => {
@@ -325,27 +365,25 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
                 bioInput.value
             );
 
+            await updateProfile(auth.currentUser, {
+                displayName: profile.displayName
+            });
+
             currentProfile = {
                 ...currentProfile,
                 ...profile
             };
 
             editor.close();
+
             renderProfile(currentProfile, true);
-
-            // Mantém o nome atualizado no Firebase Authentication.
-            await updateProfile(auth.currentUser, {
-                displayName: profile.displayName
-            });
-
-            await updateProfile(auth.currentUser, {
-                displayName: profile.displayName
-            });
 
         } catch (error) {
 
             console.error("Profile update error:", error);
-            errorElement.textContent = error.message || "Não foi possível salvar.";
+
+            errorElement.textContent =
+                error.message || "Não foi possível salvar.";
 
         } finally {
             submitButton.disabled = false;
@@ -356,21 +394,10 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
         openProfile(event.detail?.uid);
     });
 
-    onSnapshot(
-        auth.currentUser
-            ? doc(db, "users", auth.currentUser.uid)
-            : doc(db, "users", "__none__"),
-        () => { }
-    );
-
-    import {
-        onAuthStateChanged,
-        updateProfile
-    } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
-
     onAuthStateChanged(auth, async user => {
 
-        const accountActions = accountBar?.querySelector(".account-actions");
+        const accountActions =
+            accountBar?.querySelector(".account-actions");
 
         if (accountActions && !accountActions.contains(profileButton)) {
             accountActions.appendChild(profileButton);
@@ -379,6 +406,7 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
         profileButton.hidden = !user;
 
         if (!user) {
+
             currentProfile = null;
             viewedUid = null;
 
@@ -387,16 +415,27 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
                 profileListener = null;
             }
 
-            content.textContent = "Entre para visualizar seu perfil.";
+            content.textContent =
+                "Entre para visualizar seu perfil.";
+
             editButton.hidden = true;
             return;
         }
 
         try {
+
             currentProfile = await ensureProfile(user);
+
+            if (auth.currentUser?.uid !== user.uid) {
+                return;
+            }
+
             openProfile(user.uid);
+
         } catch (error) {
             console.error("Profile initialization error:", error);
+            content.textContent =
+                "Não foi possível inicializar seu perfil.";
         }
     });
 
