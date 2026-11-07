@@ -488,24 +488,16 @@
     </dialog>
 
     <!-- PROFILE EDITOR -->
+
     <dialog class="project-dialog" id="profileEditorDialog">
-
         <div class="dialog-content">
-
-            <button class="modal-close"
-                    id="closeProfileEditor"
-                    type="button">
-                ×
-            </button>
+            <button class="modal-close" id="closeProfileEditor" type="button">×</button>
 
             <div class="dialog-details">
-
                 <span class="eyebrow">MR GREEN / SETTINGS</span>
-
                 <h2>Editar perfil</h2>
 
                 <form id="profileForm">
-
                     <label for="profileDisplayName">Nome de exibição</label>
                     <input id="profileDisplayName"
                            type="text"
@@ -521,20 +513,27 @@
 
                     <small>Use letras minúsculas, números e _.</small>
 
-                    <label for="profileBio">Bio (opcional)</label>
+                    <label for="profileBio">Bio</label>
                     <textarea id="profileBio"
                               maxlength="160"
                               rows="4"
                               placeholder="Conte um pouco sobre você..."></textarea>
+
+                    <div class="profile-photo-field">
+                        <label for="profilePhoto">Foto de perfil</label>
+                        <div id="profilePhotoPreview" class="profile-photo-preview">M</div>
+                        <input id="profilePhoto"
+                               type="file"
+                               accept="image/jpeg,image/png,image/webp">
+                        <small>JPG, PNG ou WebP. Máximo de 2 MB.</small>
+                    </div>
 
                     <p id="profileError" role="alert"></p>
 
                     <button class="primary" type="submit">
                         Salvar alterações
                     </button>
-
                 </form>
-
             </div>
         </div>
     </dialog>

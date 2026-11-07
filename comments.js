@@ -31,7 +31,14 @@ export function initComments({
     const profileListeners = new Map();
     const authorElements = new Map();
 
+
     function watchCommentAuthor(uid, element, fallbackName) {
+        if (!uid || !element) return;
+
+        const avatar = element.querySelector(".comment-avatar");
+        const nameElement = element.querySelector(".comment-author-name");
+
+        if (!avatar || !nameElement) return;
 
         if (!authorElements.has(uid)) {
             authorElements.set(uid, new Set());
@@ -39,36 +46,48 @@ export function initComments({
 
         authorElements.get(uid).add(element);
 
-        if (!profileListeners.has(uid)) {
+        if (profileListeners.has(uid)) return;
 
-            const unsubscribe = onSnapshot(
-                doc(db, "users", uid),
-                snapshot => {
+        const profileRef = doc(db, "users", uid);
 
-                    const profile = snapshot.exists()
-                        ? snapshot.data()
-                        : null;
+        const unsubscribe = onSnapshot(profileRef, snapshot => {
+            const profile = snapshot.exists() ? snapshot.data() : {};
 
-                    const name = profile?.displayName || fallbackName || "User";
-                    const username = profile?.username || "";
+            const name = profile.displayName || fallbackName || "User";
+            const photoURL = profile.photoURL || "";
+            const username = profile.username || "";
 
-                    authorElements.get(uid)?.forEach(authorElement => {
-                        authorElement.textContent = name;
-                        authorElement.title = username ? `@${username}` : name;
-                    });
+            const elements = authorElements.get(uid);
+
+            if (!elements) return;
+
+            elements.forEach(authorElement => {
+                const authorAvatar = authorElement.querySelector(".comment-avatar");
+                const authorName = authorElement.querySelector(".comment-author-name");
+
+                if (!authorAvatar || !authorName) return;
+
+                authorName.textContent = name;
+
+                authorElement.title = username ? `@${username}` : name;
+
+                authorAvatar.replaceChildren();
+
+                if (photoURL) {
+                    const image = document.createElement("img");
+                    image.src = photoURL;
+                    image.alt = "";
+                    authorAvatar.appendChild(image);
+                } else {
+                    authorAvatar.textContent =
+                        name.charAt(0).toUpperCase() || "M";
                 }
-            );
-
-            profileListeners.set(uid, unsubscribe);
-        }
-
-        element.addEventListener("click", () => {
-            window.dispatchEvent(
-                new CustomEvent("mrgreen:view-profile", {
-                    detail: { uid }
-                })
-            );
+            });
+        }, error => {
+            console.error("Erro ao carregar autor do comentário:", error);
         });
+
+        profileListeners.set(uid, unsubscribe);
     }
 
     const translations = {
@@ -331,219 +350,257 @@ export function initComments({
         return collection(db, type, id, "comments");
     }
 
+
     function renderComments(type, id, card) {
-        const key = `${type}_${id}`;
+        const commentsSection = createElement("section", "post-comments");
 
-        elements.set(key, { type, id, card });
+        const toggleButton = createButton("Comentários", "comments-toggle");
+        const commentsContent = createElement("div", "comments-content");
 
-        let section = card.querySelector(".post-comments");
+        commentsContent.hidden = true;
 
-        if (!section) {
-            section = createElement("section", "post-comments");
-            card.appendChild(section);
-        }
+        toggleButton.addEventListener("click", () => {
+            const isOpen = commentsContent.hidden;
 
-        section.replaceChildren();
+            commentsContent.hidden = !isOpen;
+            toggleButton.classList.toggle("comments-open", isOpen);
+        });
 
-        const toggle = createButton(
-            `💬 ${t("comments")}`,
-            "comments-toggle",
-            () => {
-                section.classList.toggle("comments-open");
+        const heading = createElement("h3", "comments-heading", "Comentários");
+
+        const commentForm = createElement("form", "comment-form");
+
+        const commentInput = createElement("textarea", "comment-input");
+        commentInput.placeholder = t("placeholder");
+        commentInput.maxLength = 1000;
+        commentInput.rows = 3;
+        commentInput.required = true;
+
+        const submitButton = createButton("Publicar comentário", "primary");
+        submitButton.type = "submit";
+
+        commentForm.append(commentInput, submitButton);
+
+        const commentList = createElement("div", "comment-list");
+
+        commentsContent.append(
+            heading,
+            commentForm,
+            commentList
+        );
+
+        commentsSection.append(
+            toggleButton,
+            commentsContent
+        );
+
+        card.appendChild(commentsSection);
+
+        const commentsCollection = getCollection(type, id);
+
+        commentForm.addEventListener("submit", async event => {
+            event.preventDefault();
+
+            if (!currentUser) {
+                alert("Você precisa estar conectado para comentar.");
+                return;
             }
-        );
 
-        const content = createElement("div", "comments-content");
+            const text = commentInput.value.trim();
 
-        section.append(toggle, content);
+            if (!text) return;
 
-        const heading = createElement(
-            "h3",
-            "comments-heading",
-            t("comments")
-        );
+            try {
+                submitButton.disabled = true;
+                submitButton.textContent = "Publicando...";
 
-        content.appendChild(heading);
+                await addDoc(commentsCollection, {
+                    text,
+                    authorUid: currentUser.uid,
+                    authorName:
+                        currentUser.displayName ||
+                        currentUser.email ||
+                        "User",
+                    createdAt: serverTimestamp()
+                });
 
-        if (currentUser) {
-            const form = createElement("form", "comment-form");
+                commentInput.value = "";
+            } catch (error) {
+                console.error("Erro ao publicar comentário:", error);
+                alert("Não foi possível publicar o comentário.");
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = "Publicar comentário";
+            }
+        });
 
-            const textarea = createElement("textarea", "comment-input");
-            textarea.placeholder = t("placeholder");
-            textarea.maxLength = 1000;
-            textarea.required = true;
-            textarea.rows = 3;
+        const listenerKey = `${type}_${id}`;
 
-            const submit = createElement(
-                "button",
-                "comment-submit",
-                t("send")
-            );
-
-            submit.type = "submit";
-
-            form.append(textarea, submit);
-
-            form.addEventListener("submit", async event => {
-                event.preventDefault();
-
-                const text = textarea.value.trim();
-
-                if (!text) {
-                    alert(t("empty"));
-                    return;
-                }
-
-                submit.disabled = true;
-
-                try {
-                    await addDoc(getCollection(type, id), {
-                        text,
-                        authorUid: currentUser.uid,
-                        authorName: currentUser.displayName ||
-                            currentUser.email ||
-                            "User",
-                        createdAt: serverTimestamp()
-                    });
-
-                    textarea.value = "";
-
-                } catch (error) {
-                    console.error(error);
-                    alert(t("error"));
-                }
-
-                submit.disabled = false;
-            });
-
-            content.appendChild(form);
-
-        } else {
-            content.appendChild(
-                createElement(
-                    "p",
-                    "comments-login-message",
-                    t("loginRequired")
-                )
-            );
+        if (listeners.has(listenerKey)) {
+            listeners.get(listenerKey)();
         }
 
-        const list = createElement("div", "comments-list");
-        content.appendChild(list);
+        const commentsQuery = query(
+            commentsCollection,
+            orderBy("createdAt", "asc")
+        );
 
-        if (!listeners.has(key)) {
-            const commentsQuery = query(
-                getCollection(type, id),
-                orderBy("createdAt", "asc")
-            );
+        const unsubscribe = onSnapshot(commentsQuery, snapshot => {
+            commentList.replaceChildren();
 
-            const unsubscribe = onSnapshot(
-                commentsQuery,
-                snapshot => {
-                    toggle.textContent =
-                        `💬 ${t("comments")} (${snapshot.size})`;
+            heading.textContent = `Comentários (${snapshot.size})`;
+            toggleButton.textContent = `Comentários (${snapshot.size})`;
 
-                    list.replaceChildren();
+            if (snapshot.empty) {
+                const emptyMessage = createElement(
+                    "p",
+                    "comments-empty",
+                    "Nenhum comentário ainda."
+                );
 
-                    if (snapshot.empty) {
-                        list.appendChild(
-                            createElement(
-                                "p",
-                                "comments-empty",
-                                t("noComments")
-                            )
-                        );
+                commentList.appendChild(emptyMessage);
+                return;
+            }
 
-                        return;
-                    }
+            snapshot.forEach(commentDoc => {
+                const comment = commentDoc.data();
 
-                    snapshot.forEach(commentDoc => {
-                        const comment = commentDoc.data();
+                const commentItem = createElement(
+                    "article",
+                    "comment-item"
+                );
 
-                        const item = createElement("div", "comment-item");
-                        const header = createElement("div", "comment-header");
+                const commentHeader = createElement(
+                    "div",
+                    "comment-header"
+                );
 
-                        const author = createElement(
-                            "button",
-                            "comment-author",
-                            comment.authorName || "User"
-                        );
+                // Botão do autor.
+                const author = createElement(
+                    "button",
+                    "comment-author"
+                );
 
-                        author.type = "button";
+                author.type = "button";
 
-                        if (comment.authorUid) {
-                            watchCommentAuthor(
-                                comment.authorUid,
-                                author,
-                                comment.authorName
-                            );
-                        }
+                // Avatar.
+                const avatar = createElement(
+                    "span",
+                    "comment-avatar",
+                    "M"
+                );
 
-                        header.appendChild(author);
+                // Nome do autor.
+                const authorName = createElement(
+                    "span",
+                    "comment-author-name",
+                    comment.authorName || "User"
+                );
 
-                        const canDelete = currentUser && (
-                            currentUser.uid === comment.authorUid ||
-                            currentUser.uid === adminUid
-                        );
+                author.append(
+                    avatar,
+                    authorName
+                );
 
-                        if (canDelete) {
-                            header.appendChild(
-                                createButton(
-                                    t("delete"),
-                                    "comment-delete",
-                                    async () => {
-                                        if (!confirm(
-                                            getLanguage() === "en"
-                                                ? "Delete this comment?"
-                                                : "Excluir este comentário?"
-                                        )) return;
-
-                                        try {
-                                            await deleteDoc(
-                                                doc(
-                                                    db,
-                                                    type,
-                                                    id,
-                                                    "comments",
-                                                    commentDoc.id
-                                                )
-                                            );
-                                        } catch (error) {
-                                            console.error(error);
-                                            alert(t("error"));
-                                        }
-                                    }
-                                )
-                            );
-                        }
-
-                        item.append(
-                            header,
-                            createElement(
-                                "p",
-                                "comment-text",
-                                comment.text || ""
-                            )
-                        );
-
-                        list.appendChild(item);
-                    });
-                },
-                error => {
-                    console.error("Comment listener error:", error);
-
-                    list.replaceChildren(
-                        createElement(
-                            "p",
-                            "comments-error",
-                            t("error")
-                        )
+                if (comment.authorUid) {
+                    watchCommentAuthor(
+                        comment.authorUid,
+                        author,
+                        comment.authorName
                     );
                 }
-            );
 
-            listeners.set(key, unsubscribe);
-        }
+                author.addEventListener("click", () => {
+                    if (!comment.authorUid) return;
+
+                    document.dispatchEvent(
+                        new CustomEvent("mrgreen:view-profile", {
+                            detail: {
+                                uid: comment.authorUid
+                            }
+                        })
+                    );
+                });
+
+                commentHeader.appendChild(author);
+
+                // Botão de excluir.
+                const canDelete =
+                    currentUser &&
+                    (
+                        currentUser.uid === comment.authorUid ||
+                        currentUser.uid === adminUid
+                    );
+
+                if (canDelete) {
+                    const deleteButton = createButton(
+                        "Excluir",
+                        "comment-delete"
+                    );
+
+                    deleteButton.type = "button";
+
+                    deleteButton.addEventListener("click", async () => {
+                        const confirmed = confirm(
+                            "Tem certeza que deseja excluir este comentário?"
+                        );
+
+                        if (!confirmed) return;
+
+                        try {
+                            await deleteDoc(
+                                doc(
+                                    db,
+                                    type,
+                                    id,
+                                    "comments",
+                                    commentDoc.id
+                                )
+                            );
+                        } catch (error) {
+                            console.error(
+                                "Erro ao excluir comentário:",
+                                error
+                            );
+
+                            alert("Não foi possível excluir o comentário.");
+                        }
+                    });
+
+                    commentHeader.appendChild(deleteButton);
+                }
+
+                // Texto do comentário.
+                const commentText = createElement(
+                    "p",
+                    "comment-text",
+                    comment.text || ""
+                );
+
+                commentItem.append(
+                    commentHeader,
+                    commentText
+                );
+
+                commentList.appendChild(commentItem);
+            });
+        }, error => {
+            console.error("Erro ao carregar comentários:", error);
+
+            commentList.replaceChildren();
+
+            commentList.appendChild(
+                createElement(
+                    "p",
+                    "comments-error",
+                    "Não foi possível carregar os comentários."
+                )
+            );
+        });
+
+        listeners.set(listenerKey, unsubscribe);
+
+        return commentsSection;
     }
 
     function stopCommentListeners() {

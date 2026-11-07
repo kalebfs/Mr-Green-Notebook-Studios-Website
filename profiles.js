@@ -1,3 +1,4 @@
+
 import {
     doc,
     getDoc,
@@ -6,279 +7,280 @@ import {
     onSnapshot
 } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
 
-import {
-    onAuthStateChanged,
-    updateProfile
-} from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
+const CLOUDINARY_CLOUD_NAME = "kqzpdeaz";
+const CLOUDINARY_UPLOAD_PRESET = "kalebfs_posts";
+const MAX_PROFILE_PHOTO_SIZE = 2 * 1024 * 1024;
 
 export function initProfiles({ auth, db, accountBar, getLanguage }) {
+    const profileContent = document.getElementById("profileContent");
+    const editProfileButton = document.getElementById("editProfileButton");
+    const profileEditorDialog = document.getElementById("profileEditorDialog");
+    const profileForm = document.getElementById("profileForm");
+    const closeProfileEditor = document.getElementById("closeProfileEditor");
 
-    const content = document.getElementById("profileContent");
-    const editButton = document.getElementById("editProfileButton");
-    const editor = document.getElementById("profileEditorDialog");
-    const form = document.getElementById("profileForm");
-    const closeButton = document.getElementById("closeProfileEditor");
-
-    const displayNameInput = document.getElementById("profileDisplayName");
-    const usernameInput = document.getElementById("profileUsername");
-    const bioInput = document.getElementById("profileBio");
-    const errorElement = document.getElementById("profileError");
+    const profileDisplayName = document.getElementById("profileDisplayName");
+    const profileUsername = document.getElementById("profileUsername");
+    const profileBio = document.getElementById("profileBio");
+    const profileError = document.getElementById("profileError");
 
     let currentProfile = null;
     let viewedUid = null;
     let profileListener = null;
 
+    const accountActions = accountBar?.querySelector(".account-actions");
+
+    // Botão de perfil no canto superior.
     const profileButton = document.createElement("button");
     profileButton.type = "button";
-    profileButton.className = "account-button";
-    profileButton.textContent = "Meu perfil";
-    profileButton.hidden = true;
+    profileButton.className = "profile-corner-button";
+    profileButton.title = "Meu perfil";
+    profileButton.setAttribute("aria-label", "Abrir meu perfil");
+    profileButton.textContent = "M";
 
-    accountBar?.querySelector(".account-actions")?.appendChild(profileButton);
+    if (accountActions) {
+        accountActions.appendChild(profileButton);
+    }
+
+    // Campo de foto do editor.
+    let photoInput = document.getElementById("profilePhoto");
+    let photoPreview = document.getElementById("profilePhotoPreview");
+
+    if (profileForm && !photoInput) {
+        const photoField = document.createElement("div");
+        photoField.className = "profile-photo-field";
+
+        const label = document.createElement("label");
+        label.htmlFor = "profilePhoto";
+        label.textContent = "Foto de perfil";
+
+        photoInput = document.createElement("input");
+        photoInput.type = "file";
+        photoInput.id = "profilePhoto";
+        photoInput.accept = "image/jpeg,image/png,image/webp";
+
+        photoPreview = document.createElement("div");
+        photoPreview.id = "profilePhotoPreview";
+        photoPreview.className = "profile-photo-preview";
+        photoPreview.textContent = "M";
+
+        photoField.append(label, photoInput, photoPreview);
+
+        const submitButton = profileForm.querySelector('[type="submit"]');
+
+        if (submitButton) {
+            profileForm.insertBefore(photoField, submitButton);
+        } else {
+            profileForm.appendChild(photoField);
+        }
+    }
+
+    function escapeHTML(value) {
+        return String(value ?? "").replace(/[&<>"']/g, character => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;"
+        })[character]);
+    }
 
     function slugify(value) {
-        return value
+        return String(value || "")
+            .toLowerCase()
             .normalize("NFD")
             .replace(/[\u0300-\u036f]/g, "")
-            .toLowerCase()
             .replace(/[^a-z0-9_]/g, "")
             .slice(0, 20);
     }
 
     function validateProfile(displayName, username, bio) {
-
-        if (displayName.length < 2 || displayName.length > 32) {
-            throw new Error("O nome deve ter entre 2 e 32 caracteres.");
+        if (!displayName || displayName.length > 32) {
+            return "O nome deve ter entre 1 e 32 caracteres.";
         }
 
         if (!/^[a-z0-9_]{3,20}$/.test(username)) {
-            throw new Error(
-                "O arroba deve ter entre 3 e 20 caracteres e usar apenas letras minúsculas, números e _."
-            );
+            return "O usuário deve ter de 3 a 20 caracteres, usando letras minúsculas, números ou _.";
         }
 
         if (bio.length > 160) {
-            throw new Error("A bio pode ter no máximo 160 caracteres.");
+            return "A bio pode ter no máximo 160 caracteres.";
+        }
+
+        return null;
+    }
+
+    function updateProfileButton(profile) {
+        if (!profileButton) return;
+
+        profileButton.replaceChildren();
+
+        if (profile?.photoURL) {
+            const image = document.createElement("img");
+            image.src = profile.photoURL;
+            image.alt = "Foto de perfil";
+            profileButton.appendChild(image);
+        } else {
+            profileButton.textContent =
+                profile?.displayName?.charAt(0)?.toUpperCase() || "M";
+        }
+    }
+
+    function renderProfile(profile, uid) {
+        if (!profileContent) return;
+
+        const avatar = profile.photoURL
+            ? `<img src="${escapeHTML(profile.photoURL)}" alt="Foto de perfil">`
+            : escapeHTML(profile.displayName?.charAt(0)?.toUpperCase() || "M");
+
+        profileContent.innerHTML = `
+            <div class="profile-card-avatar">${avatar}</div>
+            <h2>${escapeHTML(profile.displayName || "User")}</h2>
+            <p class="profile-username">@${escapeHTML(profile.username || "user")}</p>
+            <p class="profile-bio">${escapeHTML(profile.bio || "Nenhuma bio adicionada.")}</p>
+        `;
+
+        const isOwnProfile = auth.currentUser?.uid === uid;
+
+        if (editProfileButton) {
+            editProfileButton.hidden = !isOwnProfile;
+        }
+
+        if (isOwnProfile) {
+            currentProfile = profile;
+            updateProfileButton(profile);
         }
     }
 
     async function ensureProfile(user) {
-
         const userRef = doc(db, "users", user.uid);
-        const existing = await getDoc(userRef);
-
-        if (existing.exists()) {
-            return existing.data();
-        }
-
-        let base = slugify(
-            user.displayName ||
-            user.email?.split("@")[0] ||
-            "user"
-        );
-
-        if (base.length < 3) {
-            base = "user";
-        }
 
         return runTransaction(db, async transaction => {
+            const profileSnapshot = await transaction.get(userRef);
 
-            const userSnapshot = await transaction.get(userRef);
-
-            if (userSnapshot.exists()) {
-                return userSnapshot.data();
+            if (profileSnapshot.exists()) {
+                return profileSnapshot.data();
             }
 
-            let username = base;
-            let usernameRef;
-            let available = false;
+            const baseName = slugify(user.displayName || "user") || "user";
+            const username = `${baseName.slice(0, 12)}_${user.uid.slice(0, 6).toLowerCase()}`;
+            const usernameRef = doc(db, "usernames", username);
 
-            for (let i = 0; i < 100; i++) {
+            const usernameSnapshot = await transaction.get(usernameRef);
 
-                username = i === 0
-                    ? base
-                    : `${base.slice(0, 16)}${i}`;
-
-                usernameRef = doc(db, "usernames", username);
-
-                const usernameSnapshot = await transaction.get(usernameRef);
-
-                if (!usernameSnapshot.exists()) {
-                    available = true;
-                    break;
-                }
+            if (usernameSnapshot.exists()) {
+                throw new Error("Não foi possível criar seu nome de usuário.");
             }
 
-            if (!available) {
-                throw new Error(
-                    "Não foi possível gerar um arroba disponível."
-                );
-            }
-
-            const profile = {
+            const newProfile = {
                 uid: user.uid,
                 displayName: user.displayName || "User",
                 username,
                 usernameLower: username,
                 bio: "",
+                photoURL: "",
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp()
             };
 
-            transaction.set(userRef, profile);
+            transaction.set(userRef, newProfile);
 
             transaction.set(usernameRef, {
                 uid: user.uid
             });
 
-            return profile;
+            return newProfile;
         });
     }
 
-    async function saveProfile(displayName, username, bio) {
+    async function uploadProfilePhoto(file) {
+        if (!file) return currentProfile?.photoURL || "";
 
-        const user = auth.currentUser;
+        const allowedTypes = [
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+        ];
 
-        if (!user) {
-            throw new Error("Você precisa entrar na sua conta.");
+        if (!allowedTypes.includes(file.type)) {
+            throw new Error("Use uma imagem JPG, PNG ou WebP.");
         }
 
-        displayName = displayName.trim();
-        username = username.trim().toLowerCase().replace(/^@/, "");
-        bio = bio.trim();
+        if (file.size > MAX_PROFILE_PHOTO_SIZE) {
+            throw new Error("A foto deve ter no máximo 2 MB.");
+        }
 
-        validateProfile(displayName, username, bio);
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
 
+        const response = await fetch(
+            `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+            {
+                method: "POST",
+                body: formData
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.secure_url) {
+            throw new Error(result.error?.message || "Não foi possível enviar a foto.");
+        }
+
+        return result.secure_url;
+    }
+
+    async function saveProfile(user, data) {
         const userRef = doc(db, "users", user.uid);
+        const newUsernameRef = doc(db, "usernames", data.username);
 
         await runTransaction(db, async transaction => {
+            const profileSnapshot = await transaction.get(userRef);
+            const newUsernameSnapshot = await transaction.get(newUsernameRef);
 
-            const userSnapshot = await transaction.get(userRef);
+            const oldProfile = profileSnapshot.exists()
+                ? profileSnapshot.data()
+                : {};
 
-            if (!userSnapshot.exists()) {
-                throw new Error(
-                    "Seu perfil ainda não foi criado. Tente novamente."
-                );
-            }
-
-            const oldProfile = userSnapshot.data();
-            const oldUsername = oldProfile.username;
-
-            const newUsernameRef = doc(db, "usernames", username);
-
-            const newUsernameSnapshot = username === oldUsername
-                ? null
-                : await transaction.get(newUsernameRef);
+            const oldUsername = oldProfile.usernameLower || oldProfile.username || "";
 
             if (
-                newUsernameSnapshot?.exists() &&
+                newUsernameSnapshot.exists() &&
                 newUsernameSnapshot.data().uid !== user.uid
             ) {
-                throw new Error("Este arroba já está sendo utilizado.");
+                throw new Error("Esse nome de usuário já está em uso.");
             }
 
-            const oldUsernameRef = oldUsername
-                ? doc(db, "usernames", oldUsername)
-                : null;
+            let oldUsernameRef = null;
 
-            if (oldUsernameRef && oldUsername !== username) {
-
-                const oldUsernameSnapshot = await transaction.get(
-                    oldUsernameRef
-                );
-
-                if (
-                    oldUsernameSnapshot.exists() &&
-                    oldUsernameSnapshot.data().uid === user.uid
-                ) {
-                    transaction.delete(oldUsernameRef);
-                }
+            if (oldUsername && oldUsername !== data.username) {
+                oldUsernameRef = doc(db, "usernames", oldUsername);
+                await transaction.get(oldUsernameRef);
             }
 
-            if (oldUsername !== username) {
-                transaction.set(newUsernameRef, {
-                    uid: user.uid
-                });
-            }
-
-            transaction.update(userRef, {
-                displayName,
-                username,
-                usernameLower: username,
-                bio,
+            transaction.set(userRef, {
+                uid: user.uid,
+                displayName: data.displayName,
+                username: data.username,
+                usernameLower: data.username,
+                bio: data.bio,
+                photoURL: data.photoURL,
+                createdAt: oldProfile.createdAt || serverTimestamp(),
                 updatedAt: serverTimestamp()
             });
+
+            transaction.set(newUsernameRef, {
+                uid: user.uid
+            });
+
+            if (oldUsernameRef) {
+                transaction.delete(oldUsernameRef);
+            }
         });
-
-        return {
-            displayName,
-            username,
-            bio
-        };
-    }
-
-    function renderProfile(profile, isOwner) {
-
-        content.replaceChildren();
-
-        if (!profile) {
-            content.textContent = "Perfil não encontrado.";
-            editButton.hidden = true;
-            return;
-        }
-
-        const card = document.createElement("div");
-        card.className = "profile-card";
-
-        const avatar = document.createElement("div");
-        avatar.className = "profile-avatar";
-        avatar.textContent = (profile.displayName || "?")
-            .charAt(0)
-            .toUpperCase();
-
-        const name = document.createElement("h2");
-        name.textContent = profile.displayName || "User";
-
-        const username = document.createElement("p");
-        username.className = "profile-username";
-        username.textContent = `@${profile.username || "user"}`;
-
-        const bio = document.createElement("p");
-        bio.className = "profile-bio";
-        bio.textContent = profile.bio || "Nenhuma bio adicionada.";
-
-        const label = document.createElement("span");
-        label.className = "profile-label";
-        label.textContent = isOwner
-            ? "SEU PERFIL"
-            : "PERFIL PÚBLICO";
-
-        card.append(label, avatar, name, username, bio);
-        content.appendChild(card);
-
-        editButton.hidden = !isOwner;
-    }
-
-    function openEditor() {
-
-        if (!auth.currentUser || !currentProfile) {
-            return;
-        }
-
-        errorElement.textContent = "";
-
-        displayNameInput.value = currentProfile.displayName || "";
-        usernameInput.value = currentProfile.username || "";
-        bioInput.value = currentProfile.bio || "";
-
-        editor.showModal();
     }
 
     async function openProfile(uid) {
-
-        if (!uid) {
-            return;
-        }
+        if (!uid) return;
 
         viewedUid = uid;
 
@@ -287,160 +289,181 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
             profileListener = null;
         }
 
-        const isOwner = auth.currentUser?.uid === uid;
-
-        if (isOwner) {
-            currentProfile = null;
+        if (profileContent) {
+            profileContent.innerHTML = "<p>Carregando perfil...</p>";
         }
 
-        content.textContent = "Carregando perfil...";
-        editButton.hidden = true;
+        const userRef = doc(db, "users", uid);
 
-        document.querySelector('[data-page="profile"]')?.click();
-
-        profileListener = onSnapshot(
-            doc(db, "users", uid),
-
-            snapshot => {
-
-                if (viewedUid !== uid) {
-                    return;
+        profileListener = onSnapshot(userRef, snapshot => {
+            if (!snapshot.exists()) {
+                if (profileContent) {
+                    profileContent.innerHTML = "<p>Perfil não encontrado.</p>";
                 }
-
-                if (!snapshot.exists()) {
-                    renderProfile(null, false);
-                    return;
-                }
-
-                const profile = snapshot.data();
-
-                if (isOwner) {
-                    currentProfile = profile;
-                }
-
-                renderProfile(profile, isOwner);
-            },
-
-            error => {
-                console.error("Profile loading error:", error);
-                content.textContent =
-                    "Não foi possível carregar este perfil.";
+                return;
             }
-        );
+
+            renderProfile(snapshot.data(), uid);
+        }, error => {
+            console.error("Erro ao carregar perfil:", error);
+
+            if (profileContent) {
+                profileContent.innerHTML = "<p>Não foi possível carregar este perfil.</p>";
+            }
+        });
     }
 
-    profileButton.addEventListener("click", () => {
+    function openEditor() {
+        if (!currentProfile || !profileEditorDialog) return;
 
-        if (auth.currentUser) {
-            openProfile(auth.currentUser.uid);
+        profileDisplayName.value = currentProfile.displayName || "";
+        profileUsername.value = currentProfile.username || "";
+        profileBio.value = currentProfile.bio || "";
+
+        if (photoInput) {
+            photoInput.value = "";
         }
-    });
 
-    editButton.addEventListener("click", openEditor);
+        updatePhotoPreview(currentProfile.photoURL);
 
-    closeButton.addEventListener("click", () => {
-        editor.close();
-    });
-
-    editor.addEventListener("click", event => {
-
-        if (event.target === editor) {
-            editor.close();
+        if (profileError) {
+            profileError.textContent = "";
         }
+
+        profileEditorDialog.showModal();
+    }
+
+    function updatePhotoPreview(url) {
+        if (!photoPreview) return;
+
+        photoPreview.replaceChildren();
+
+        if (url) {
+            const image = document.createElement("img");
+            image.src = url;
+            image.alt = "Prévia da foto";
+            photoPreview.appendChild(image);
+        } else {
+            photoPreview.textContent =
+                currentProfile?.displayName?.charAt(0)?.toUpperCase() || "M";
+        }
+    }
+
+    photoInput?.addEventListener("change", () => {
+        const file = photoInput.files?.[0];
+
+        if (!file) {
+            updatePhotoPreview(currentProfile?.photoURL || "");
+            return;
+        }
+
+        if (file.size > MAX_PROFILE_PHOTO_SIZE) {
+            if (profileError) {
+                profileError.textContent = "A foto deve ter no máximo 2 MB.";
+            }
+
+            photoInput.value = "";
+            return;
+        }
+
+        const previewURL = URL.createObjectURL(file);
+        updatePhotoPreview(previewURL);
     });
 
-    form.addEventListener("submit", async event => {
+    profileButton.addEventListener("click", async () => {
+        const user = auth.currentUser;
+        if (!user) return;
 
+        await openProfile(user.uid);
+
+        document.dispatchEvent(new CustomEvent("mrgreen:open-profile", {
+            detail: { uid: user.uid }
+        }));
+    });
+
+    editProfileButton?.addEventListener("click", openEditor);
+
+    closeProfileEditor?.addEventListener("click", () => {
+        profileEditorDialog.close();
+    });
+
+    profileForm?.addEventListener("submit", async event => {
         event.preventDefault();
-        errorElement.textContent = "";
 
-        const submitButton = form.querySelector('[type="submit"]');
-        submitButton.disabled = true;
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const displayName = profileDisplayName.value.trim();
+        const username = slugify(profileUsername.value.trim());
+        const bio = profileBio.value.trim();
+        const selectedPhoto = photoInput?.files?.[0] || null;
+
+        const validationError = validateProfile(displayName, username, bio);
+
+        if (validationError) {
+            profileError.textContent = validationError;
+            return;
+        }
+
+        const submitButton = profileForm.querySelector('[type="submit"]');
 
         try {
+            profileError.textContent = "";
 
-            const profile = await saveProfile(
-                displayNameInput.value,
-                usernameInput.value,
-                bioInput.value
-            );
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.textContent = "Salvando...";
+            }
 
-            await updateProfile(auth.currentUser, {
-                displayName: profile.displayName
+            const photoURL = selectedPhoto
+                ? await uploadProfilePhoto(selectedPhoto)
+                : currentProfile?.photoURL || "";
+
+            await saveProfile(user, {
+                displayName,
+                username,
+                bio,
+                photoURL
             });
 
-            currentProfile = {
-                ...currentProfile,
-                ...profile
-            };
-
-            editor.close();
-
-            renderProfile(currentProfile, true);
-
+            profileEditorDialog.close();
+            await openProfile(user.uid);
         } catch (error) {
-
-            console.error("Profile update error:", error);
-
-            errorElement.textContent =
-                error.message || "Não foi possível salvar.";
-
+            console.error("Erro ao salvar perfil:", error);
+            profileError.textContent = error.message || "Não foi possível salvar o perfil.";
         } finally {
-            submitButton.disabled = false;
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.textContent = "Salvar alterações";
+            }
         }
     });
 
-    window.addEventListener("mrgreen:view-profile", event => {
-        openProfile(event.detail?.uid);
+    document.addEventListener("mrgreen:view-profile", event => {
+        const uid = event.detail?.uid;
+        if (uid) openProfile(uid);
     });
 
-    onAuthStateChanged(auth, async user => {
-
-        const accountActions =
-            accountBar?.querySelector(".account-actions");
-
-        if (accountActions && !accountActions.contains(profileButton)) {
-            accountActions.appendChild(profileButton);
-        }
-
-        profileButton.hidden = !user;
-
+    auth.onAuthStateChanged(async user => {
         if (!user) {
-
             currentProfile = null;
-            viewedUid = null;
+            profileButton.hidden = true;
 
             if (profileListener) {
                 profileListener();
                 profileListener = null;
             }
 
-            content.textContent =
-                "Entre para visualizar seu perfil.";
-
-            editButton.hidden = true;
             return;
         }
 
+        profileButton.hidden = false;
+
         try {
-
-            currentProfile = await ensureProfile(user);
-
-            if (auth.currentUser?.uid !== user.uid) {
-                return;
-            }
-
-            openProfile(user.uid);
-
+            await ensureProfile(user);
+            await openProfile(user.uid);
         } catch (error) {
-            console.error("Profile initialization error:", error);
-            content.textContent =
-                "Não foi possível inicializar seu perfil.";
+            console.error("Erro ao inicializar perfil:", error);
         }
     });
-
-    return {
-        openProfile,
-        saveProfile
-    };
 }
