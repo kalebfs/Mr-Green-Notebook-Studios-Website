@@ -733,6 +733,119 @@ footer {
     }
 }
 
+
+/* =========================================
+   POSTS — EDITORIAL NEWS DESIGN
+========================================= */
+
+.post-card.update {
+    position: relative;
+    margin: 22px 0;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: linear-gradient( 135deg, var(--panel2), var(--panel) );
+    transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+}
+
+    .post-card.update:hover {
+        transform: translateY(-4px);
+        border-color: var(--accent);
+        box-shadow: 0 16px 40px #0005;
+    }
+
+    /* Post image */
+
+    .post-card.update > img {
+        display: block;
+        width: 100%;
+        max-height: 420px;
+        aspect-ratio: 16 / 7;
+        object-fit: cover;
+        background: var(--panel2);
+        border-bottom: 1px solid var(--line);
+        transition: transform .5s ease;
+    }
+
+    .post-card.update:hover > img {
+        transform: scale(1.015);
+    }
+
+    /* Post content */
+
+    .post-card.update > time {
+        display: block;
+        margin: 22px 25px 10px;
+        color: var(--accent);
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: .16em;
+        text-transform: uppercase;
+    }
+
+    .post-card.update > h2,
+    .post-card.update > h3 {
+        margin: 0 25px 12px;
+        color: var(--text);
+        font-size: clamp(22px, 4vw, 30px);
+        font-weight: 900;
+        line-height: 1.2;
+        letter-spacing: -.04em;
+        overflow-wrap: anywhere;
+    }
+
+    .post-card.update > p {
+        margin: 0 25px;
+        padding-bottom: 25px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.85;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    /* Delete button */
+
+    .post-card.update > .delete-button {
+        margin: 0 25px 22px;
+    }
+
+    /* Posts without images */
+
+    .post-card.update:not(:has(> img)) {
+        padding-top: 3px;
+    }
+
+/* Responsive */
+
+@media (max-width: 520px) {
+    .post-card.update > img {
+        aspect-ratio: 16 / 9;
+    }
+
+    .post-card.update > time {
+        margin: 18px 18px 9px;
+    }
+
+    .post-card.update > h2,
+    .post-card.update > h3 {
+        margin-left: 18px;
+        margin-right: 18px;
+        font-size: 23px;
+    }
+
+    .post-card.update > p {
+        margin-left: 18px;
+        margin-right: 18px;
+        font-size: 13px;
+    }
+
+    .post-card.update > .delete-button {
+        margin-left: 18px;
+    }
+}
+
 /* =========================================
    SEASONAL THEMES
    Only colors change. Layout stays the same.

@@ -1087,7 +1087,7 @@ function renderPosts(posts) {
         const data = post.data();
 
         const card = document.createElement("article");
-        card.className = "update";
+        card.className = "post-card update";
 
         if (data.imageUrl) {
             const image = document.createElement("img");
