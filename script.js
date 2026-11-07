@@ -19,13 +19,6 @@ import {
     deleteDoc,
     doc
 } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
-import {
-    getStorage,
-    ref as storageRef,
-    uploadBytes,
-    getDownloadURL,
-    deleteObject
-} from "https://www.gstatic.com/firebasejs/13.2.0/firebase-storage.js";
 
 /* =========================
    FIREBASE
@@ -43,9 +36,40 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const storage = getStorage(app);
 
 const ADMIN_UID = "Qouhq47ZojcixHwiXkfmXwfT2xe2";
+
+/* =========================
+   CLOUDINARY
+========================= */
+
+const CLOUDINARY_CLOUD_NAME = "kqzpdeaz";
+const CLOUDINARY_UPLOAD_PRESET = "kalebfs_posts";
+
+async function uploadPostImage(file) {
+    const formData = new FormData();
+
+    formData.append("file", file);
+    formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+    const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+        {
+            method: "POST",
+            body: formData
+        }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(
+            result.error?.message || "Cloudinary upload failed."
+        );
+    }
+
+    return result.secure_url;
+}
 
 /* =========================
    TRANSLATIONS
@@ -420,7 +444,6 @@ function showPage(pageId, updateHistory = true) {
    PROJECT CARDS
 ========================= */
 
-
 function createProjectCard(project, index) {
     const card = document.createElement("article");
     card.className = "card";
@@ -489,7 +512,6 @@ function createProjectCard(project, index) {
 
     return card;
 }
-
 
 /* =========================
    RENDER PROJECTS
@@ -701,7 +723,6 @@ onAuthStateChanged(auth, user => {
         adminLogoutButton.hidden = !isAdmin;
     }
 
-    // Atualiza os botões de deletar
     renderFirestoreUpdates();
     renderLatestPosts();
 });
@@ -890,10 +911,7 @@ onSnapshot(
 const allowedImageTypes = [
     "image/png",
     "image/jpeg",
-    "image/webp",
-    "image/gif",
-    "image/bmp",
-    "image/avif"
+    "image/webp"
 ];
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
@@ -1004,23 +1022,9 @@ postForm?.addEventListener("submit", async event => {
     try {
         let imageUrl = "";
 
-        // Upload image
+        // Upload image to Cloudinary
         if (imageFile) {
-            const safeName = imageFile.name.replace(
-                /[^a-zA-Z0-9._-]/g,
-                "_"
-            );
-
-            const imageReference = storageRef(
-                storage,
-                `posts/${user.uid}/${Date.now()}_${safeName}`
-            );
-
-            await uploadBytes(imageReference, imageFile, {
-                contentType: imageFile.type
-            });
-
-            imageUrl = await getDownloadURL(imageReference);
+            imageUrl = await uploadPostImage(imageFile);
         }
 
         // Save post in Firestore
@@ -1054,7 +1058,7 @@ postForm?.addEventListener("submit", async event => {
         console.error("Post publishing error:", error);
 
         postError.textContent =
-            "Error: " + (error.code || error.message || "Unknown Firebase error");
+            "Error: " + (error.code || error.message || "Unknown error");
 
     } finally {
         publishPostButton.disabled = false;
@@ -1125,21 +1129,8 @@ function renderPosts(posts) {
                 deleteButton.disabled = true;
 
                 try {
-                    // Delete image from Storage
-                    if (data.imageUrl) {
-                        try {
-                            await deleteObject(
-                                storageRef(storage, data.imageUrl)
-                            );
-                        } catch (imageError) {
-                            console.warn(
-                                "Could not delete post image:",
-                                imageError
-                            );
-                        }
-                    }
-
-                    // Delete post from Firestore
+                    // Delete post from Firestore.
+                    // The Cloudinary image remains stored separately.
                     await deleteDoc(doc(db, "posts", post.id));
 
                 } catch (error) {
