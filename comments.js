@@ -85,14 +85,27 @@ export function initComments({ auth, db, adminUid, getLanguage }) {
         return button;
     }
 
-    function watchCommentAuthor(uid, element, fallbackName) {
-        if (!uid || !element) return;
+    // Abre o perfil do autor do comentário.
+    function openAuthorProfile(uid) {
+        if (!uid) return;
+
+        // Dispara o evento utilizado pelo profiles.js.
+        document.dispatchEvent(
+            new CustomEvent("mrgreen:view-profile", {
+                detail: { uid }
+            })
+        );
+    }
+
+    // Atualiza o nome e a foto dos autores em tempo real.
+    function watchCommentAuthor(uid, authorElement) {
+        if (!uid || !authorElement) return;
 
         if (!authorElements.has(uid)) {
             authorElements.set(uid, new Set());
         }
 
-        authorElements.get(uid).add(element);
+        authorElements.get(uid).add(authorElement);
 
         if (profileListeners.has(uid)) return;
 
@@ -103,11 +116,6 @@ export function initComments({ auth, db, adminUid, getLanguage }) {
                 ? snapshot.data()
                 : {};
 
-            const displayName =
-                profile.displayName ||
-                fallbackName ||
-                "User";
-
             const username = profile.username || "user";
             const photoURL = profile.photoURL || "";
 
@@ -115,33 +123,41 @@ export function initComments({ auth, db, adminUid, getLanguage }) {
 
             if (!elements) return;
 
-            elements.forEach(authorElement => {
-                const avatar = authorElement.querySelector(".comment-avatar");
-                const name = authorElement.querySelector(".comment-author-name");
-                const usernameElement = authorElement.querySelector(".comment-author-username");
+            elements.forEach(element => {
+                if (!element.isConnected) {
+                    elements.delete(element);
+                    return;
+                }
 
-                if (!avatar || !name || !usernameElement) return;
+                const avatar = element.querySelector(".comment-avatar");
+                const usernameElement = element.querySelector(
+                    ".comment-author-username"
+                );
 
-                name.textContent = displayName;
+                if (!avatar || !usernameElement) return;
+
+                // Somente o @username é exibido.
                 usernameElement.textContent = `@${username}`;
 
+                // Atualiza a foto.
                 avatar.replaceChildren();
 
                 if (photoURL) {
                     const image = document.createElement("img");
+
                     image.src = photoURL;
-                    image.alt = `Foto de ${displayName}`;
+                    image.alt = "Foto de perfil";
 
                     image.onerror = () => {
                         image.remove();
                         avatar.textContent =
-                            displayName.charAt(0).toUpperCase() || "U";
+                            username.charAt(0).toUpperCase() || "U";
                     };
 
                     avatar.appendChild(image);
                 } else {
                     avatar.textContent =
-                        displayName.charAt(0).toUpperCase() || "U";
+                        username.charAt(0).toUpperCase() || "U";
                 }
             });
         }, error => {
@@ -277,11 +293,15 @@ export function initComments({ auth, db, adminUid, getLanguage }) {
             t("register"),
             async values => {
                 if (values.username.length < 2 || values.username.length > 40) {
-                    throw new Error("O nome deve ter entre 2 e 40 caracteres.");
+                    throw new Error(
+                        "O nome deve ter entre 2 e 40 caracteres."
+                    );
                 }
 
                 if (values.password.length < 6) {
-                    throw new Error("A senha precisa ter pelo menos 6 caracteres.");
+                    throw new Error(
+                        "A senha precisa ter pelo menos 6 caracteres."
+                    );
                 }
 
                 const result = await createUserWithEmailAndPassword(
@@ -317,9 +337,13 @@ export function initComments({ auth, db, adminUid, getLanguage }) {
             );
 
             accountActions.appendChild(
-                createButton(t("logout"), "account-button logout-button", async () => {
-                    await signOut(auth);
-                })
+                createButton(
+                    t("logout"),
+                    "account-button logout-button",
+                    async () => {
+                        await signOut(auth);
+                    }
+                )
             );
         } else {
             accountInfo.appendChild(
@@ -328,7 +352,11 @@ export function initComments({ auth, db, adminUid, getLanguage }) {
 
             accountActions.append(
                 createButton(t("login"), "account-button", openLogin),
-                createButton(t("register"), "account-button register-button", openRegister)
+                createButton(
+                    t("register"),
+                    "account-button register-button",
+                    openRegister
+                )
             );
         }
     }
@@ -357,11 +385,16 @@ export function initComments({ auth, db, adminUid, getLanguage }) {
 
         toggleButton.addEventListener("click", () => {
             const isOpen = commentsContent.hidden;
+
             commentsContent.hidden = !isOpen;
             toggleButton.classList.toggle("comments-open", isOpen);
         });
 
-        const heading = createElement("h3", "comments-heading", t("comments"));
+        const heading = createElement(
+            "h3",
+            "comments-heading",
+            t("comments")
+        );
 
         const commentForm = createElement("form", "comment-form");
 
@@ -395,6 +428,7 @@ export function initComments({ auth, db, adminUid, getLanguage }) {
             }
 
             const text = commentInput.value.trim();
+
             if (!text) return;
 
             try {
@@ -433,6 +467,7 @@ export function initComments({ auth, db, adminUid, getLanguage }) {
                 commentList.appendChild(
                     createElement("p", "comments-empty", t("noComments"))
                 );
+
                 return;
             }
 
@@ -442,18 +477,17 @@ export function initComments({ auth, db, adminUid, getLanguage }) {
                 const commentItem = createElement("article", "comment-item");
                 const commentHeader = createElement("div", "comment-header");
 
+                // Botão do autor: foto + @username.
                 const author = createElement("button", "comment-author");
                 author.type = "button";
+                author.title = "Ver perfil";
 
                 const avatar = createElement("span", "comment-avatar");
                 avatar.textContent = "U";
 
-                const authorInfo = createElement("span", "comment-author-info");
-
-                const authorName = createElement(
+                const authorInfo = createElement(
                     "span",
-                    "comment-author-name",
-                    comment.authorName || "User"
+                    "comment-author-info"
                 );
 
                 const username = createElement(
@@ -462,29 +496,22 @@ export function initComments({ auth, db, adminUid, getLanguage }) {
                     "@user"
                 );
 
-                authorInfo.append(authorName, username);
+                authorInfo.appendChild(username);
                 author.append(avatar, authorInfo);
 
+                // Busca username e foto no documento users/{uid}.
                 if (comment.authorUid) {
-                    watchCommentAuthor(
-                        comment.authorUid,
-                        author,
-                        comment.authorName
-                    );
+                    watchCommentAuthor(comment.authorUid, author);
                 }
 
+                // Clicar no nome ou na foto abre o perfil.
                 author.addEventListener("click", () => {
-                    if (!comment.authorUid) return;
-
-                    document.dispatchEvent(
-                        new CustomEvent("mrgreen:view-profile", {
-                            detail: { uid: comment.authorUid }
-                        })
-                    );
+                    openAuthorProfile(comment.authorUid);
                 });
 
                 commentHeader.appendChild(author);
 
+                // Verificação: autor do comentário ou administrador.
                 const canDelete =
                     currentUser &&
                     (
@@ -499,7 +526,9 @@ export function initComments({ auth, db, adminUid, getLanguage }) {
                     );
 
                     deleteButton.addEventListener("click", async () => {
-                        if (!confirm("Tem certeza que deseja excluir este comentário?")) {
+                        if (!confirm(
+                            "Tem certeza que deseja excluir este comentário?"
+                        )) {
                             return;
                         }
 
@@ -508,7 +537,11 @@ export function initComments({ auth, db, adminUid, getLanguage }) {
                                 doc(db, type, id, "comments", commentDoc.id)
                             );
                         } catch (error) {
-                            console.error("Erro ao excluir comentário:", error);
+                            console.error(
+                                "Erro ao excluir comentário:",
+                                error
+                            );
+
                             alert("Não foi possível excluir o comentário.");
                         }
                     });
@@ -529,6 +562,7 @@ export function initComments({ auth, db, adminUid, getLanguage }) {
             console.error("Erro ao carregar comentários:", error);
 
             commentList.replaceChildren();
+
             commentList.appendChild(
                 createElement(
                     "p",

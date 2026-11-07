@@ -1,7 +1,6 @@
 
 import {
     doc,
-    getDoc,
     runTransaction,
     serverTimestamp,
     onSnapshot
@@ -162,7 +161,10 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
             }
 
             const baseName = slugify(user.displayName || "user") || "user";
-            const username = `${baseName.slice(0, 12)}_${user.uid.slice(0, 6).toLowerCase()}`;
+
+            const username =
+                `${baseName.slice(0, 12)}_${user.uid.slice(0, 6).toLowerCase()}`;
+
             const usernameRef = doc(db, "usernames", username);
 
             const usernameSnapshot = await transaction.get(usernameRef);
@@ -224,7 +226,9 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
         const result = await response.json();
 
         if (!response.ok || !result.secure_url) {
-            throw new Error(result.error?.message || "Não foi possível enviar a foto.");
+            throw new Error(
+                result.error?.message || "Não foi possível enviar a foto."
+            );
         }
 
         return result.secure_url;
@@ -242,7 +246,8 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
                 ? profileSnapshot.data()
                 : {};
 
-            const oldUsername = oldProfile.usernameLower || oldProfile.username || "";
+            const oldUsername =
+                oldProfile.usernameLower || oldProfile.username || "";
 
             if (
                 newUsernameSnapshot.exists() &&
@@ -284,6 +289,12 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
 
         viewedUid = uid;
 
+        // Esconde o botão enquanto o perfil carrega.
+        if (editProfileButton) {
+            editProfileButton.hidden = true;
+        }
+
+        // Evita mostrar dados do perfil anterior.
         if (profileListener) {
             profileListener();
             profileListener = null;
@@ -296,25 +307,50 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
         const userRef = doc(db, "users", uid);
 
         profileListener = onSnapshot(userRef, snapshot => {
+            // Ignora respostas de perfis que não estão mais abertos.
+            if (viewedUid !== uid) return;
+
             if (!snapshot.exists()) {
+                currentProfile = null;
+
                 if (profileContent) {
-                    profileContent.innerHTML = "<p>Perfil não encontrado.</p>";
+                    profileContent.innerHTML =
+                        "<p>Perfil não encontrado.</p>";
                 }
+
                 return;
             }
 
-            renderProfile(snapshot.data(), uid);
+            const profile = snapshot.data();
+
+            renderProfile(profile, uid);
+
+            // Verifica novamente se é o próprio perfil.
+            if (editProfileButton) {
+                editProfileButton.hidden = !(
+                    auth.currentUser?.uid === uid
+                );
+            }
         }, error => {
             console.error("Erro ao carregar perfil:", error);
 
             if (profileContent) {
-                profileContent.innerHTML = "<p>Não foi possível carregar este perfil.</p>";
+                profileContent.innerHTML =
+                    "<p>Não foi possível carregar este perfil.</p>";
             }
         });
     }
 
     function openEditor() {
         if (!currentProfile || !profileEditorDialog) return;
+
+        // Impede editar o perfil de outra pessoa.
+        if (
+            !auth.currentUser ||
+            auth.currentUser.uid !== viewedUid
+        ) {
+            return;
+        }
 
         profileDisplayName.value = currentProfile.displayName || "";
         profileUsername.value = currentProfile.username || "";
@@ -359,7 +395,8 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
 
         if (file.size > MAX_PROFILE_PHOTO_SIZE) {
             if (profileError) {
-                profileError.textContent = "A foto deve ter no máximo 2 MB.";
+                profileError.textContent =
+                    "A foto deve ter no máximo 2 MB.";
             }
 
             photoInput.value = "";
@@ -391,14 +428,19 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
         event.preventDefault();
 
         const user = auth.currentUser;
-        if (!user) return;
+
+        if (!user || user.uid !== viewedUid) return;
 
         const displayName = profileDisplayName.value.trim();
         const username = slugify(profileUsername.value.trim());
         const bio = profileBio.value.trim();
         const selectedPhoto = photoInput?.files?.[0] || null;
 
-        const validationError = validateProfile(displayName, username, bio);
+        const validationError = validateProfile(
+            displayName,
+            username,
+            bio
+        );
 
         if (validationError) {
             profileError.textContent = validationError;
@@ -428,9 +470,13 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
 
             profileEditorDialog.close();
             await openProfile(user.uid);
+
         } catch (error) {
             console.error("Erro ao salvar perfil:", error);
-            profileError.textContent = error.message || "Não foi possível salvar o perfil.";
+
+            profileError.textContent =
+                error.message || "Não foi possível salvar o perfil.";
+
         } finally {
             if (submitButton) {
                 submitButton.disabled = false;
@@ -441,23 +487,40 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
 
     document.addEventListener("mrgreen:view-profile", event => {
         const uid = event.detail?.uid;
-        if (uid) openProfile(uid);
+
+        if (uid) {
+            openProfile(uid);
+        }
     });
 
     auth.onAuthStateChanged(async user => {
         if (!user) {
             currentProfile = null;
+            viewedUid = null;
+
             profileButton.hidden = true;
+
+            if (editProfileButton) {
+                editProfileButton.hidden = true;
+            }
 
             if (profileListener) {
                 profileListener();
                 profileListener = null;
             }
 
+            if (profileContent) {
+                profileContent.innerHTML = "";
+            }
+
             return;
         }
 
         profileButton.hidden = false;
+
+        if (editProfileButton) {
+            editProfileButton.hidden = true;
+        }
 
         try {
             await ensureProfile(user);
