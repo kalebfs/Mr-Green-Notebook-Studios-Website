@@ -372,6 +372,27 @@ const commentsFeature = initComments({
     getLanguage: () => language
 });
 
+// Comentários das atualizações iniciais do site
+const initialUpdates = document.querySelectorAll(
+    "#updatesList > article.update:not([data-firestore-update])"
+);
+
+if (initialUpdates[0]) {
+    commentsFeature.renderComments(
+        "updates",
+        "initial-site-created",
+        initialUpdates[0]
+    );
+}
+
+if (initialUpdates[1]) {
+    commentsFeature.renderComments(
+        "updates",
+        "coming-soon",
+        initialUpdates[1]
+    );
+}
+
 const profilesFeature = initProfiles({
     auth,
     db,
