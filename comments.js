@@ -28,6 +28,49 @@ export function initComments({
     const listeners = new Map();
     const elements = new Map();
 
+    const profileListeners = new Map();
+    const authorElements = new Map();
+
+    function watchCommentAuthor(uid, element, fallbackName) {
+
+        if (!authorElements.has(uid)) {
+            authorElements.set(uid, new Set());
+        }
+
+        authorElements.get(uid).add(element);
+
+        if (!profileListeners.has(uid)) {
+
+            const unsubscribe = onSnapshot(
+                doc(db, "users", uid),
+                snapshot => {
+
+                    const profile = snapshot.exists()
+                        ? snapshot.data()
+                        : null;
+
+                    const name = profile?.displayName || fallbackName || "User";
+                    const username = profile?.username || "";
+
+                    authorElements.get(uid)?.forEach(authorElement => {
+                        authorElement.textContent = name;
+                        authorElement.title = username ? `@${username}` : name;
+                    });
+                }
+            );
+
+            profileListeners.set(uid, unsubscribe);
+        }
+
+        element.addEventListener("click", () => {
+            window.dispatchEvent(
+                new CustomEvent("mrgreen:view-profile", {
+                    detail: { uid }
+                })
+            );
+        });
+    }
+
     const translations = {
         pt: {
             login: "Entrar",
@@ -420,13 +463,23 @@ export function initComments({
                         const item = createElement("div", "comment-item");
                         const header = createElement("div", "comment-header");
 
-                        header.appendChild(
-                            createElement(
-                                "strong",
-                                "comment-author",
-                                comment.authorName || "User"
-                            )
+                        const author = createElement(
+                            "button",
+                            "comment-author",
+                            comment.authorName || "User"
                         );
+
+                        author.type = "button";
+
+                        if (comment.authorUid) {
+                            watchCommentAuthor(
+                                comment.authorUid,
+                                author,
+                                comment.authorName
+                            );
+                        }
+
+                        header.appendChild(author);
 
                         const canDelete = currentUser && (
                             currentUser.uid === comment.authorUid ||
@@ -497,6 +550,9 @@ export function initComments({
         listeners.forEach(unsubscribe => unsubscribe());
         listeners.clear();
         elements.clear();
+        profileListeners.forEach(unsubscribe => unsubscribe());
+        profileListeners.clear();
+        authorElements.clear();
     }
 
     function refreshLanguage() {

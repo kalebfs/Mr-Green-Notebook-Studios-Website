@@ -2,6 +2,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebas
 
 import { initComments } from "./comments.js";
 
+import { initProfiles } from "./profiles.js";
+
 import {
     getAuth,
     onAuthStateChanged,
@@ -299,8 +301,14 @@ const validPages = [
     "games",
     "updates",
     "posts",
-    "about"
-];
+    "about",
+    "profile"
+]; const commentsFeature = initComments({
+    auth,
+    db,
+    adminUid: ADMIN_UID,
+    getLanguage: () => language
+});
 
 /* =========================
    ELEMENTS
@@ -366,6 +374,13 @@ const commentsFeature = initComments({
     auth,
     db,
     adminUid: ADMIN_UID,
+    getLanguage: () => language
+});
+
+const profilesFeature = initProfiles({
+    auth,
+    db,
+    accountBar: commentsFeature.accountBar,
     getLanguage: () => language
 });
 

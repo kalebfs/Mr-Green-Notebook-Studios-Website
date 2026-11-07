@@ -34,7 +34,10 @@
                 <button class="nav-btn" data-page="remakes" data-i18n="navRemakes">Remakes</button>
                 <button class="nav-btn" data-page="games" data-i18n="navGames">Jogos</button>
                 <button class="nav-btn" data-page="updates" data-i18n="navUpdates">Atualizações</button>
-                <button class="nav-btn" data-page="posts" data-i18n="navPosts">Posts</button>
+                <button class="nav-btn" data-page="posts" data-i18n="navPosts">Posts</button>]
+                <button class="nav-btn" data-page="profile">
+                    Perfil
+                </button>
                 <button class="nav-btn" data-page="about" data-i18n="navAbout">Sobre</button>
 
                 <select id="languageSelect"
@@ -226,6 +229,26 @@
                 </p>
 
             </div>
+
+        </section>
+
+        <!-- PROFILE -->
+        <section class="page" id="profile">
+
+            <div class="eyebrow">MR GREEN / PROFILE</div>
+
+            <h1 class="page-title">Perfil</h1>
+
+            <div id="profileContent" class="profile-content">
+                <p>Carregando perfil...</p>
+            </div>
+
+            <button id="editProfileButton"
+                    class="primary"
+                    type="button"
+                    hidden>
+                Editar perfil
+            </button>
 
         </section>
 
@@ -462,6 +485,58 @@
 
         </div>
 
+    </dialog>
+
+    <!-- PROFILE EDITOR -->
+    <dialog class="project-dialog" id="profileEditorDialog">
+
+        <div class="dialog-content">
+
+            <button class="modal-close"
+                    id="closeProfileEditor"
+                    type="button">
+                ×
+            </button>
+
+            <div class="dialog-details">
+
+                <span class="eyebrow">MR GREEN / SETTINGS</span>
+
+                <h2>Editar perfil</h2>
+
+                <form id="profileForm">
+
+                    <label for="profileDisplayName">Nome de exibição</label>
+                    <input id="profileDisplayName"
+                           type="text"
+                           maxlength="32"
+                           required>
+
+                    <label for="profileUsername">Arroba</label>
+                    <input id="profileUsername"
+                           type="text"
+                           maxlength="20"
+                           placeholder="seuarroba"
+                           required>
+
+                    <small>Use letras minúsculas, números e _.</small>
+
+                    <label for="profileBio">Bio (opcional)</label>
+                    <textarea id="profileBio"
+                              maxlength="160"
+                              rows="4"
+                              placeholder="Conte um pouco sobre você..."></textarea>
+
+                    <p id="profileError" role="alert"></p>
+
+                    <button class="primary" type="submit">
+                        Salvar alterações
+                    </button>
+
+                </form>
+
+            </div>
+        </div>
     </dialog>
 
     <!-- FOOTER -->
