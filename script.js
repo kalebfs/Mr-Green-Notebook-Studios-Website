@@ -1,4 +1,3 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
 
 import { initComments } from "./comments.js";
@@ -359,13 +358,24 @@ const cancelPostButton = document.getElementById("cancelPostButton");
 
 const postsList = document.getElementById("postsList");
 
+/* =========================
+   COMMENTS
+========================= */
+
 const commentsFeature = initComments({
     auth,
     db,
     adminUid: ADMIN_UID,
-    postsList,
     getLanguage: () => language
 });
+
+// A barra de conta fica acima dos posts.
+if (commentsFeature.accountBar && postsList?.parentElement) {
+    postsList.parentElement.insertBefore(
+        commentsFeature.accountBar,
+        postsList
+    );
+}
 
 /* =========================
    GENERAL HELPERS
@@ -436,32 +446,19 @@ function detectSourceLanguage(text, fallback = "pt") {
     let englishScore = 0;
 
     for (const word of words) {
-        if (portugueseWords.has(word)) {
-            portugueseScore += 2;
-        }
-
-        if (englishWords.has(word)) {
-            englishScore += 2;
-        }
+        if (portugueseWords.has(word)) portugueseScore += 2;
+        if (englishWords.has(word)) englishScore += 2;
     }
 
-    // Palavras portuguesas sem acento também são consideradas.
     const original = text.toLowerCase();
 
     if (/[ãõçáéíóúâêô]/i.test(original)) {
         portugueseScore += 4;
     }
 
-    if (englishScore > portugueseScore) {
-        return "en";
-    }
+    if (englishScore > portugueseScore) return "en";
+    if (portugueseScore > englishScore) return "pt";
 
-    if (portugueseScore > englishScore) {
-        return "pt";
-    }
-
-    // Quando o texto é muito curto ou ambíguo,
-    // utiliza o idioma antigo como alternativa.
     return fallback === "en" ? "en" : "pt";
 }
 
@@ -539,9 +536,7 @@ function splitTranslationText(text) {
         current += token;
     }
 
-    if (current) {
-        chunks.push(current);
-    }
+    if (current) chunks.push(current);
 
     return chunks;
 }
@@ -579,13 +574,8 @@ async function requestMyMemoryTranslation(text, source, target) {
 }
 
 async function translateText(text, sourceLanguage, targetLanguage) {
-    if (!text || typeof text !== "string") {
-        return text || "";
-    }
-
-    if (sourceLanguage === targetLanguage) {
-        return text;
-    }
+    if (!text || typeof text !== "string") return text || "";
+    if (sourceLanguage === targetLanguage) return text;
 
     if (
         !["pt", "en"].includes(sourceLanguage) ||
@@ -602,9 +592,7 @@ async function translateText(text, sourceLanguage, targetLanguage) {
 
     const cached = readTranslationCache(cacheKey);
 
-    if (cached !== null) {
-        return cached;
-    }
+    if (cached !== null) return cached;
 
     try {
         const chunks = splitTranslationText(text);
@@ -639,9 +627,7 @@ async function translateText(text, sourceLanguage, targetLanguage) {
 
 async function getLocalizedContent(data, field, targetLanguage, sourceOverride = null) {
     const originalText = data[field] || "";
-
-    const sourceLanguage =
-        sourceOverride || detectContentLanguage(data);
+    const sourceLanguage = sourceOverride || detectContentLanguage(data);
 
     return translateText(
         originalText,
@@ -661,9 +647,7 @@ function updateSeasonalTheme() {
 
     let theme = "green";
 
-    if (month === 9) {
-        theme = "orange";
-    }
+    if (month === 9) theme = "orange";
 
     if (month === 11 && day >= 1 && day <= 25) {
         theme = "christmas";
@@ -702,9 +686,7 @@ setInterval(updateSeasonalTheme, 60 * 1000);
 ========================= */
 
 function showPage(pageId, updateHistory = true) {
-    if (!validPages.includes(pageId)) {
-        pageId = "home";
-    }
+    if (!validPages.includes(pageId)) pageId = "home";
 
     document.querySelectorAll(".page").forEach(section => {
         section.classList.toggle("active", section.id === pageId);
@@ -919,25 +901,18 @@ function openProject(index) {
         createDownloadButton("Mobile", project.mobile)
     );
 
-    if (!dialog.open) {
-        dialog.showModal();
-    }
+    if (!dialog.open) dialog.showModal();
 }
 
 function closeProject() {
-    if (dialog?.open) {
-        dialog.close();
-    }
-
+    if (dialog?.open) dialog.close();
     currentProjectIndex = null;
 }
 
 closeDialogButton?.addEventListener("click", closeProject);
 
 dialog?.addEventListener("click", event => {
-    if (event.target === dialog) {
-        closeProject();
-    }
+    if (event.target === dialog) closeProject();
 });
 
 /* =========================
@@ -1108,9 +1083,7 @@ function formatUpdateDate(dateString) {
 
     const date = new Date(year, month - 1, day, 12);
 
-    if (Number.isNaN(date.getTime())) {
-        return dateString;
-    }
+    if (Number.isNaN(date.getTime())) return dateString;
 
     if (language === "pt") {
         const monthName = new Intl.DateTimeFormat("pt-BR", {
@@ -1159,6 +1132,13 @@ async function renderFirestoreUpdates() {
 
         article.append(time, title, description);
 
+        // Comentários da atualização.
+        commentsFeature.renderComments(
+            "updates",
+            update.id,
+            article
+        );
+
         if (isAdmin) {
             const deleteButton = document.createElement("button");
 
@@ -1193,7 +1173,6 @@ async function renderFirestoreUpdates() {
 
         updatesList.appendChild(article);
 
-        // Detecta o idioma pelo próprio conteúdo.
         const sourceLanguage = detectContentLanguage(update);
 
         if (sourceLanguage !== targetLanguage) {
@@ -1351,7 +1330,6 @@ postForm?.addEventListener("submit", async event => {
         return;
     }
 
-    // Detecta o idioma automaticamente antes de publicar.
     const detectedLanguage = detectSourceLanguage(
         `${title} ${description}`,
         postSourceLanguage?.value || "pt"
@@ -1416,17 +1394,14 @@ async function renderPosts(posts) {
     const renderVersion = ++postsRenderVersion;
     const targetLanguage = language;
 
-    commentsFeature.stopCommentListeners();
     postsList.replaceChildren();
 
     if (posts.length === 0) {
         const empty = document.createElement("p");
+        empty.className = "empty";
         empty.textContent = translate("noPosts");
-        card.dataset.postId = post.id;
 
-        postsList.appendChild(card);
-
-        commentsFeature.renderPostComments(post.id, card);
+        postsList.appendChild(empty);
         return;
     }
 
@@ -1437,6 +1412,7 @@ async function renderPosts(posts) {
 
         const card = document.createElement("article");
         card.className = "post-card update";
+        card.dataset.postId = post.id;
 
         if (data.imageUrl) {
             const image = document.createElement("img");
@@ -1458,8 +1434,16 @@ async function renderPosts(posts) {
 
         card.append(date, title, description);
 
+        // Comentários do post, logo abaixo da descrição.
+        commentsFeature.renderComments(
+            "posts",
+            post.id,
+            card
+        );
+
         if (isAdmin) {
             const deleteButton = document.createElement("button");
+
             deleteButton.type = "button";
             deleteButton.className = "delete-button";
             deleteButton.textContent = language === "pt" ? "Excluir" : "Delete";
@@ -1495,8 +1479,6 @@ async function renderPosts(posts) {
 
         postsList.appendChild(card);
 
-        // Detecta o idioma pelo título e pela descrição.
-        // Não depende mais do sourceLanguage antigo.
         const sourceLanguage = detectContentLanguage(data);
 
         if (sourceLanguage !== targetLanguage) {
@@ -1540,7 +1522,6 @@ onSnapshot(
     postsQuery,
     snapshot => {
         latestPosts = snapshot.docs;
-
         renderLatestPosts();
     },
     error => {
@@ -1595,9 +1576,7 @@ function applyStaticTranslations() {
 }
 
 function changeLanguage(nextLanguage) {
-    if (!["pt", "en"].includes(nextLanguage)) {
-        return;
-    }
+    if (!["pt", "en"].includes(nextLanguage)) return;
 
     language = nextLanguage;
 
@@ -1619,6 +1598,7 @@ function changeLanguage(nextLanguage) {
     renderProjects();
     renderFirestoreUpdates();
     renderLatestPosts();
+
     commentsFeature.refreshLanguage();
 
     if (

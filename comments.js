@@ -21,26 +21,12 @@ export function initComments({
     auth,
     db,
     adminUid,
-    postsList,
     getLanguage
 }) {
     let currentUser = null;
 
-    const commentListeners = new Map();
-    const postElements = new Map();
-
-    const accountBar = document.createElement("div");
-    accountBar.className = "account-bar";
-
-    const accountInfo = document.createElement("div");
-    accountInfo.className = "account-info";
-
-    const accountActions = document.createElement("div");
-    accountActions.className = "account-actions";
-
-    accountBar.append(accountInfo, accountActions);
-
-    postsList.parentElement.insertBefore(accountBar, postsList);
+    const listeners = new Map();
+    const elements = new Map();
 
     const translations = {
         pt: {
@@ -57,13 +43,11 @@ export function initComments({
             email: "E-mail",
             password: "Senha",
             username: "Nome de usuário",
-            cancel: "Cancelar",
             loginTitle: "Entrar na conta",
             registerTitle: "Criar uma conta",
             loginRequired: "Entre na sua conta para comentar.",
             empty: "Escreva um comentário antes de publicar.",
-            error: "Ocorreu um erro. Tente novamente.",
-            accountCreated: "Conta criada com sucesso!"
+            error: "Ocorreu um erro. Tente novamente."
         },
         en: {
             login: "Log in",
@@ -79,13 +63,11 @@ export function initComments({
             email: "Email",
             password: "Password",
             username: "Username",
-            cancel: "Cancel",
             loginTitle: "Log in",
             registerTitle: "Create an account",
             loginRequired: "Log in to comment.",
             empty: "Write a comment before posting.",
-            error: "Something went wrong. Try again.",
-            accountCreated: "Account created successfully!"
+            error: "Something went wrong. Try again."
         }
     };
 
@@ -97,13 +79,8 @@ export function initComments({
     function createElement(tag, className, text) {
         const element = document.createElement(tag);
 
-        if (className) {
-            element.className = className;
-        }
-
-        if (text !== undefined) {
-            element.textContent = text;
-        }
+        if (className) element.className = className;
+        if (text !== undefined) element.textContent = text;
 
         return element;
     }
@@ -120,16 +97,18 @@ export function initComments({
         const modal = createElement("form", "comments-modal");
 
         const heading = createElement("h2", "", title);
-        const closeButton = createButton("×", "comments-modal-close", () => {
-            overlay.remove();
-        });
+
+        const close = createButton(
+            "×",
+            "comments-modal-close",
+            () => overlay.remove()
+        );
 
         const header = createElement("div", "comments-modal-header");
-        header.append(heading, closeButton);
+        header.append(heading, close);
+        modal.appendChild(header);
 
         const inputs = {};
-
-        modal.appendChild(header);
 
         fields.forEach(field => {
             const label = createElement("label", "comments-field");
@@ -161,16 +140,16 @@ export function initComments({
             submit.disabled = true;
 
             try {
-                await onSubmit(
-                    Object.fromEntries(
-                        Object.entries(inputs).map(([key, input]) => [
-                            key,
-                            input.value.trim()
-                        ])
-                    )
+                const values = Object.fromEntries(
+                    Object.entries(inputs).map(([key, input]) => [
+                        key,
+                        input.value.trim()
+                    ])
                 );
 
+                await onSubmit(values);
                 overlay.remove();
+
             } catch (err) {
                 console.error(err);
                 error.textContent = err.message || t("error");
@@ -179,9 +158,7 @@ export function initComments({
         });
 
         overlay.addEventListener("click", event => {
-            if (event.target === overlay) {
-                overlay.remove();
-            }
+            if (event.target === overlay) overlay.remove();
         });
 
         overlay.appendChild(modal);
@@ -266,6 +243,12 @@ export function initComments({
         );
     }
 
+    const accountBar = createElement("div", "account-bar");
+    const accountInfo = createElement("div", "account-info");
+    const accountActions = createElement("div", "account-actions");
+
+    accountBar.append(accountInfo, accountActions);
+
     function renderAccount() {
         accountInfo.replaceChildren();
         accountActions.replaceChildren();
@@ -276,8 +259,11 @@ export function initComments({
                 "User";
 
             accountInfo.appendChild(
-                createElement("span", "account-status",
-                    `${t("logged")}: ${name}`)
+                createElement(
+                    "span",
+                    "account-status",
+                    `${t("logged")}: ${name}`
+                )
             );
 
             accountActions.appendChild(
@@ -285,6 +271,7 @@ export function initComments({
                     await signOut(auth);
                 })
             );
+
         } else {
             accountInfo.appendChild(
                 createElement("span", "account-status", t("guest"))
@@ -297,8 +284,14 @@ export function initComments({
         }
     }
 
-    function renderPostComments(postId, card) {
-        postElements.set(postId, card);
+    function getCollection(type, id) {
+        return collection(db, type, id, "comments");
+    }
+
+    function renderComments(type, id, card) {
+        const key = `${type}_${id}`;
+
+        elements.set(key, { type, id, card });
 
         let section = card.querySelector(".post-comments");
 
@@ -309,8 +302,25 @@ export function initComments({
 
         section.replaceChildren();
 
-        const heading = createElement("h3", "comments-heading", t("comments"));
-        section.appendChild(heading);
+        const toggle = createButton(
+            `💬 ${t("comments")}`,
+            "comments-toggle",
+            () => {
+                section.classList.toggle("comments-open");
+            }
+        );
+
+        const content = createElement("div", "comments-content");
+
+        section.append(toggle, content);
+
+        const heading = createElement(
+            "h3",
+            "comments-heading",
+            t("comments")
+        );
+
+        content.appendChild(heading);
 
         if (currentUser) {
             const form = createElement("form", "comment-form");
@@ -321,7 +331,12 @@ export function initComments({
             textarea.required = true;
             textarea.rows = 3;
 
-            const submit = createElement("button", "comment-submit", t("send"));
+            const submit = createElement(
+                "button",
+                "comment-submit",
+                t("send")
+            );
+
             submit.type = "submit";
 
             form.append(textarea, submit);
@@ -339,19 +354,17 @@ export function initComments({
                 submit.disabled = true;
 
                 try {
-                    await addDoc(
-                        collection(db, "posts", postId, "comments"),
-                        {
-                            text: text,
-                            authorUid: currentUser.uid,
-                            authorName: currentUser.displayName ||
-                                currentUser.email ||
-                                "User",
-                            createdAt: serverTimestamp()
-                        }
-                    );
+                    await addDoc(getCollection(type, id), {
+                        text,
+                        authorUid: currentUser.uid,
+                        authorName: currentUser.displayName ||
+                            currentUser.email ||
+                            "User",
+                        createdAt: serverTimestamp()
+                    });
 
                     textarea.value = "";
+
                 } catch (error) {
                     console.error(error);
                     alert(t("error"));
@@ -360,35 +373,44 @@ export function initComments({
                 submit.disabled = false;
             });
 
-            section.appendChild(form);
-        } else {
-            const message = createElement(
-                "p",
-                "comments-login-message",
-                t("loginRequired")
-            );
+            content.appendChild(form);
 
-            section.appendChild(message);
+        } else {
+            content.appendChild(
+                createElement(
+                    "p",
+                    "comments-login-message",
+                    t("loginRequired")
+                )
+            );
         }
 
         const list = createElement("div", "comments-list");
-        section.appendChild(list);
+        content.appendChild(list);
 
-        if (!commentListeners.has(postId)) {
+        if (!listeners.has(key)) {
             const commentsQuery = query(
-                collection(db, "posts", postId, "comments"),
+                getCollection(type, id),
                 orderBy("createdAt", "asc")
             );
 
             const unsubscribe = onSnapshot(
                 commentsQuery,
                 snapshot => {
+                    toggle.textContent =
+                        `💬 ${t("comments")} (${snapshot.size})`;
+
                     list.replaceChildren();
 
                     if (snapshot.empty) {
                         list.appendChild(
-                            createElement("p", "comments-empty", t("noComments"))
+                            createElement(
+                                "p",
+                                "comments-empty",
+                                t("noComments")
+                            )
                         );
+
                         return;
                     }
 
@@ -396,16 +418,15 @@ export function initComments({
                         const comment = commentDoc.data();
 
                         const item = createElement("div", "comment-item");
-
                         const header = createElement("div", "comment-header");
 
-                        const author = createElement(
-                            "strong",
-                            "comment-author",
-                            comment.authorName || "User"
+                        header.appendChild(
+                            createElement(
+                                "strong",
+                                "comment-author",
+                                comment.authorName || "User"
+                            )
                         );
-
-                        header.appendChild(author);
 
                         const canDelete = currentUser && (
                             currentUser.uid === comment.authorUid ||
@@ -413,72 +434,76 @@ export function initComments({
                         );
 
                         if (canDelete) {
-                            const deleteButton = createButton(
-                                t("delete"),
-                                "comment-delete",
-                                async () => {
-                                    const confirmed = confirm(
-                                        getLanguage() === "en"
-                                            ? "Delete this comment?"
-                                            : "Excluir este comentário?"
-                                    );
+                            header.appendChild(
+                                createButton(
+                                    t("delete"),
+                                    "comment-delete",
+                                    async () => {
+                                        if (!confirm(
+                                            getLanguage() === "en"
+                                                ? "Delete this comment?"
+                                                : "Excluir este comentário?"
+                                        )) return;
 
-                                    if (!confirmed) return;
-
-                                    try {
-                                        await deleteDoc(
-                                            doc(
-                                                db,
-                                                "posts",
-                                                postId,
-                                                "comments",
-                                                commentDoc.id
-                                            )
-                                        );
-                                    } catch (error) {
-                                        console.error(error);
-                                        alert(t("error"));
+                                        try {
+                                            await deleteDoc(
+                                                doc(
+                                                    db,
+                                                    type,
+                                                    id,
+                                                    "comments",
+                                                    commentDoc.id
+                                                )
+                                            );
+                                        } catch (error) {
+                                            console.error(error);
+                                            alert(t("error"));
+                                        }
                                     }
-                                }
+                                )
                             );
-
-                            header.appendChild(deleteButton);
                         }
 
-                        const content = createElement(
-                            "p",
-                            "comment-text",
-                            comment.text || ""
+                        item.append(
+                            header,
+                            createElement(
+                                "p",
+                                "comment-text",
+                                comment.text || ""
+                            )
                         );
 
-                        item.append(header, content);
                         list.appendChild(item);
                     });
                 },
                 error => {
-                    console.error("Erro ao carregar comentários:", error);
+                    console.error("Comment listener error:", error);
+
                     list.replaceChildren(
-                        createElement("p", "comments-error",
-                            "Não foi possível carregar os comentários.")
+                        createElement(
+                            "p",
+                            "comments-error",
+                            t("error")
+                        )
                     );
                 }
             );
 
-            commentListeners.set(postId, unsubscribe);
+            listeners.set(key, unsubscribe);
         }
     }
 
     function stopCommentListeners() {
-        commentListeners.forEach(unsubscribe => unsubscribe());
-        commentListeners.clear();
-        postElements.clear();
+        listeners.forEach(unsubscribe => unsubscribe());
+        listeners.clear();
+        elements.clear();
     }
 
     function refreshLanguage() {
         renderAccount();
 
-        postElements.forEach((card, postId) => {
-            renderPostComments(postId, card);
+        elements.forEach(({ type, id, card }) => {
+            renderComments(type, id, card);
         });
     }
 
@@ -487,16 +512,17 @@ export function initComments({
 
         renderAccount();
 
-        postElements.forEach((card, postId) => {
-            renderPostComments(postId, card);
+        elements.forEach(({ type, id, card }) => {
+            renderComments(type, id, card);
         });
     });
 
     renderAccount();
 
     return {
-        renderPostComments,
+        renderComments,
         stopCommentListeners,
-        refreshLanguage
+        refreshLanguage,
+        accountBar
     };
 }
