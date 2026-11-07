@@ -485,12 +485,16 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
         }
     });
 
-    document.addEventListener("mrgreen:view-profile", event => {
+    document.addEventListener("mrgreen:view-profile", async event => {
         const uid = event.detail?.uid;
 
-        if (uid) {
-            openProfile(uid);
-        }
+        if (!uid) return;
+
+        // Abre o perfil da pessoa.
+        await openProfile(uid);
+
+        // Muda para a página Perfil.
+        document.querySelector('[data-page="profile"]')?.click();
     });
 
     auth.onAuthStateChanged(async user => {
