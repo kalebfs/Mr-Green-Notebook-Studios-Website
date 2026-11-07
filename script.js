@@ -1,3 +1,4 @@
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
 
 import {
@@ -273,7 +274,6 @@ const LANGUAGE_STORAGE_KEY = "mrGreenWebsiteLanguage";
 function getSavedLanguage() {
     try {
         const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-
         return saved === "en" || saved === "pt" ? saved : "pt";
     } catch {
         return "pt";
@@ -373,6 +373,95 @@ function getLocalDate() {
 
 function translate(key) {
     return translations[language][key] || key;
+}
+
+/* =========================
+   AUTOMATIC LANGUAGE DETECTION
+========================= */
+
+const portugueseWords = new Set([
+    "sim", "não", "uma", "umas", "uns", "um",
+    "atualização", "atualizações", "vazamento",
+    "natal", "natalino", "chegando", "novidade",
+    "novidades", "jogo", "jogos", "projeto",
+    "projetos", "estúdio", "desenvolvimento",
+    "publicação", "publicações", "descrição",
+    "título", "imagem", "foi", "está", "estão",
+    "será", "serão", "para", "com", "sobre",
+    "mais", "aqui", "agora", "novo", "nova",
+    "novos", "novas", "em", "do", "da", "dos",
+    "das", "que", "por", "como", "seu", "sua",
+    "seus", "suas", "breve", "hoje", "amanhã"
+]);
+
+const englishWords = new Set([
+    "yes", "no", "the", "this", "that", "these",
+    "those", "is", "are", "was", "were", "will",
+    "would", "can", "could", "should", "have",
+    "has", "had", "with", "from", "about",
+    "coming", "soon", "news", "update", "updates",
+    "leak", "leaks", "christmas", "mode", "game",
+    "games", "project", "projects", "studio",
+    "development", "description", "title",
+    "image", "more", "new", "here", "now",
+    "today", "tomorrow", "for", "of", "to",
+    "in", "on", "and", "but", "not", "your",
+    "you", "we", "our", "it", "its", "a", "an"
+]);
+
+function detectSourceLanguage(text, fallback = "pt") {
+    if (!text || typeof text !== "string") {
+        return fallback === "en" ? "en" : "pt";
+    }
+
+    const normalized = text
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z\s]/g, " ");
+
+    const words = normalized.split(/\s+/).filter(Boolean);
+
+    let portugueseScore = 0;
+    let englishScore = 0;
+
+    for (const word of words) {
+        if (portugueseWords.has(word)) {
+            portugueseScore += 2;
+        }
+
+        if (englishWords.has(word)) {
+            englishScore += 2;
+        }
+    }
+
+    // Palavras portuguesas sem acento também são consideradas.
+    const original = text.toLowerCase();
+
+    if (/[ãõçáéíóúâêô]/i.test(original)) {
+        portugueseScore += 4;
+    }
+
+    if (englishScore > portugueseScore) {
+        return "en";
+    }
+
+    if (portugueseScore > englishScore) {
+        return "pt";
+    }
+
+    // Quando o texto é muito curto ou ambíguo,
+    // utiliza o idioma antigo como alternativa.
+    return fallback === "en" ? "en" : "pt";
+}
+
+function detectContentLanguage(data) {
+    const combinedText = `${data.title || ""} ${data.description || ""}`;
+
+    return detectSourceLanguage(
+        combinedText,
+        data.sourceLanguage || "pt"
+    );
 }
 
 /* =========================
@@ -534,21 +623,15 @@ async function translateText(text, sourceLanguage, targetLanguage) {
 
     } catch (error) {
         console.warn("Automatic translation failed:", error);
-
         return text;
     }
 }
 
-/*
-   IMPORTANTE:
-   Se sourceLanguage não existir, a publicação
-   será considerada em português.
-*/
-
-async function getLocalizedContent(data, field, targetLanguage) {
+async function getLocalizedContent(data, field, targetLanguage, sourceOverride = null) {
     const originalText = data[field] || "";
 
-    const sourceLanguage = data.sourceLanguage === "en" ? "en" : "pt";
+    const sourceLanguage =
+        sourceOverride || detectContentLanguage(data);
 
     return translateText(
         originalText,
@@ -970,11 +1053,19 @@ updateForm?.addEventListener("submit", async event => {
         return;
     }
 
+    const title = updateTitle.value.trim();
+    const description = updateDescription.value.trim();
+
+    const detectedLanguage = detectSourceLanguage(
+        `${title} ${description}`,
+        updateSourceLanguage?.value || "pt"
+    );
+
     try {
         await addDoc(collection(db, "updates"), {
-            title: updateTitle.value.trim(),
-            description: updateDescription.value.trim(),
-            sourceLanguage: updateSourceLanguage?.value || "pt",
+            title,
+            description,
+            sourceLanguage: detectedLanguage,
             date: updateDate.value,
             createdAt: serverTimestamp()
         });
@@ -1041,6 +1132,8 @@ async function renderFirestoreUpdates() {
         .forEach(element => element.remove());
 
     for (const update of latestUpdates) {
+        if (renderVersion !== updatesRenderVersion) return;
+
         const article = document.createElement("article");
         article.className = "update";
         article.dataset.firestoreUpdate = "true";
@@ -1090,20 +1183,13 @@ async function renderFirestoreUpdates() {
 
         updatesList.appendChild(article);
 
-        /*
-           CORREÇÃO:
-           Antes, só traduzia se sourceLanguage existisse.
-           Agora, documentos antigos sem esse campo
-           também são traduzidos como português.
-        */
-
-        const sourceLanguage =
-            update.sourceLanguage === "en" ? "en" : "pt";
+        // Detecta o idioma pelo próprio conteúdo.
+        const sourceLanguage = detectContentLanguage(update);
 
         if (sourceLanguage !== targetLanguage) {
             const [translatedTitle, translatedDescription] = await Promise.all([
-                getLocalizedContent(update, "title", targetLanguage),
-                getLocalizedContent(update, "description", targetLanguage)
+                getLocalizedContent(update, "title", targetLanguage, sourceLanguage),
+                getLocalizedContent(update, "description", targetLanguage, sourceLanguage)
             ]);
 
             if (
@@ -1255,6 +1341,12 @@ postForm?.addEventListener("submit", async event => {
         return;
     }
 
+    // Detecta o idioma automaticamente antes de publicar.
+    const detectedLanguage = detectSourceLanguage(
+        `${title} ${description}`,
+        postSourceLanguage?.value || "pt"
+    );
+
     publishPostButton.disabled = true;
     publishPostButton.textContent = translate("publishingPost");
 
@@ -1270,7 +1362,7 @@ postForm?.addEventListener("submit", async event => {
             {
                 title,
                 description,
-                sourceLanguage: postSourceLanguage?.value || "pt",
+                sourceLanguage: detectedLanguage,
                 imageUrl,
                 date: getLocalDate(),
                 createdAt: serverTimestamp(),
@@ -1355,11 +1447,13 @@ async function renderPosts(posts) {
             const deleteButton = document.createElement("button");
             deleteButton.type = "button";
             deleteButton.className = "delete-button";
-            deleteButton.textContent = "Delete";
+            deleteButton.textContent = language === "pt" ? "Excluir" : "Delete";
 
             deleteButton.addEventListener("click", async () => {
                 const confirmed = confirm(
-                    "Are you sure you want to delete this post?"
+                    language === "pt"
+                        ? "Tem certeza de que deseja excluir este post?"
+                        : "Are you sure you want to delete this post?"
                 );
 
                 if (!confirmed) return;
@@ -1370,7 +1464,13 @@ async function renderPosts(posts) {
                     await deleteDoc(doc(db, "posts", post.id));
                 } catch (error) {
                     console.error("Post deletion error:", error);
-                    alert("Could not delete this post. Check Firebase permissions.");
+
+                    alert(
+                        language === "pt"
+                            ? "Não foi possível excluir este post."
+                            : "Could not delete this post. Check Firebase permissions."
+                    );
+
                     deleteButton.disabled = false;
                 }
             });
@@ -1380,17 +1480,23 @@ async function renderPosts(posts) {
 
         postsList.appendChild(card);
 
-        // Posts antigos sem sourceLanguage são considerados em português.
-        const sourceLanguage = data.sourceLanguage === "en" ? "en" : "pt";
+        // Detecta o idioma pelo título e pela descrição.
+        // Não depende mais do sourceLanguage antigo.
+        const sourceLanguage = detectContentLanguage(data);
 
         if (sourceLanguage !== targetLanguage) {
             try {
                 const [translatedTitle, translatedDescription] = await Promise.all([
-                    getLocalizedContent(data, "title", targetLanguage),
-                    getLocalizedContent(data, "description", targetLanguage)
+                    getLocalizedContent(data, "title", targetLanguage, sourceLanguage),
+                    getLocalizedContent(data, "description", targetLanguage, sourceLanguage)
                 ]);
 
-                if (renderVersion !== postsRenderVersion) return;
+                if (
+                    renderVersion !== postsRenderVersion ||
+                    targetLanguage !== language
+                ) {
+                    return;
+                }
 
                 title.textContent = translatedTitle;
                 description.textContent = translatedDescription;
@@ -1496,12 +1602,6 @@ function changeLanguage(nextLanguage) {
     applyStaticTranslations();
 
     renderProjects();
-
-    /*
-       Recarrega todas as atualizações e posts
-       para aplicar o idioma selecionado.
-    */
-
     renderFirestoreUpdates();
     renderLatestPosts();
 
@@ -1576,7 +1676,6 @@ function initializeWebsite() {
     showPage(getPageFromHash(), false);
 
     renderProjects();
-
     renderFirestoreUpdates();
     renderLatestPosts();
 
