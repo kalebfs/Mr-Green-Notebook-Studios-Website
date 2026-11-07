@@ -1,4 +1,3 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
 
 import {
@@ -63,9 +62,7 @@ async function uploadPostImage(file) {
     const result = await response.json();
 
     if (!response.ok) {
-        throw new Error(
-            result.error?.message || "Cloudinary upload failed."
-        );
+        throw new Error(result.error?.message || "Cloudinary upload failed.");
     }
 
     return result.secure_url;
@@ -239,7 +236,6 @@ const projects = [
             en: "A new Baldi’s Basics experience with modifiers."
         }
     },
-
     {
         name: "Granny Redux",
         type: "remakes",
@@ -253,7 +249,6 @@ const projects = [
             en: "A horror remake project currently in development."
         }
     },
-
     {
         name: "Momo Horror Game Escape House Reunion",
         type: "games",
@@ -270,14 +265,33 @@ const projects = [
 ];
 
 /* =========================
-   STATE
+   LANGUAGE STATE
 ========================= */
 
-let language = "pt";
+const LANGUAGE_STORAGE_KEY = "mrGreenWebsiteLanguage";
+
+function getSavedLanguage() {
+    try {
+        const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+
+        return saved === "en" || saved === "pt"
+            ? saved
+            : "pt";
+    } catch {
+        return "pt";
+    }
+}
+
+let language = getSavedLanguage();
+
 let currentProjectIndex = null;
 let isAdmin = false;
 let latestUpdates = [];
+let latestPosts = [];
 let postPreviewURL = null;
+
+let postsRenderVersion = 0;
+let updatesRenderVersion = 0;
 
 const validPages = [
     "home",
@@ -300,7 +314,7 @@ const dialogCategory = document.getElementById("dialogCategory");
 const dialogDescription = document.getElementById("dialogDescription");
 const dialogDownloads = document.getElementById("dialogDownloads");
 
-const langToggle = document.getElementById("langToggle");
+const languageSelect = document.getElementById("languageSelect");
 const closeDialogButton = document.getElementById("closeDialog");
 
 const adminLoginButton = document.getElementById("adminLoginButton");
@@ -325,6 +339,7 @@ const updateError = document.getElementById("updateError");
 const updateTitle = document.getElementById("updateTitle");
 const updateDescription = document.getElementById("updateDescription");
 const updateDate = document.getElementById("updateDate");
+const updateSourceLanguage = document.getElementById("updateSourceLanguage");
 
 const updatesList = document.getElementById("updatesList");
 
@@ -336,6 +351,7 @@ const postForm = document.getElementById("postForm");
 
 const postTitle = document.getElementById("postTitle");
 const postDescription = document.getElementById("postDescription");
+const postSourceLanguage = document.getElementById("postSourceLanguage");
 const postImage = document.getElementById("postImage");
 const postImagePreview = document.getElementById("postImagePreview");
 
@@ -361,6 +377,183 @@ function getLocalDate() {
 
 function translate(key) {
     return translations[language][key] || key;
+}
+
+/* =========================
+   AUTOMATIC TRANSLATION
+========================= */
+
+const TRANSLATION_CACHE_PREFIX = "mrGreenTranslation_";
+const MYMEMORY_URL = "https://api.mymemory.translated.net/get";
+const MAX_TRANSLATION_CHUNK = 450;
+
+function createTranslationCacheKey(source, target, text) {
+    const value = `${source}|${target}|${text}`;
+
+    let hash = 2166136261;
+
+    for (let i = 0; i < value.length; i++) {
+        hash ^= value.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+    }
+
+    return TRANSLATION_CACHE_PREFIX + (hash >>> 0).toString(16);
+}
+
+function readTranslationCache(key) {
+    try {
+        return localStorage.getItem(key);
+    } catch {
+        return null;
+    }
+}
+
+function saveTranslationCache(key, value) {
+    try {
+        localStorage.setItem(key, value);
+    } catch (error) {
+        console.warn("Translation cache could not be saved:", error);
+    }
+}
+
+function splitTranslationText(text) {
+    const tokens = text.match(/\s+|[^\s]+/g) || [];
+    const chunks = [];
+
+    let current = "";
+
+    for (const token of tokens) {
+        if (current.length + token.length > MAX_TRANSLATION_CHUNK && current) {
+            chunks.push(current);
+            current = "";
+        }
+
+        if (token.length > MAX_TRANSLATION_CHUNK) {
+            if (current) {
+                chunks.push(current);
+                current = "";
+            }
+
+            for (let i = 0; i < token.length; i += MAX_TRANSLATION_CHUNK) {
+                chunks.push(token.slice(i, i + MAX_TRANSLATION_CHUNK));
+            }
+
+            continue;
+        }
+
+        current += token;
+    }
+
+    if (current) {
+        chunks.push(current);
+    }
+
+    return chunks;
+}
+
+function decodeTranslationEntities(value) {
+    const textarea = document.createElement("textarea");
+    textarea.innerHTML = value;
+    return textarea.value;
+}
+
+async function requestMyMemoryTranslation(text, source, target) {
+    const params = new URLSearchParams({
+        q: text,
+        langpair: `${source}|${target}`
+    });
+
+    const response = await fetch(`${MYMEMORY_URL}?${params.toString()}`);
+
+    if (!response.ok) {
+        throw new Error(`Translation service returned ${response.status}.`);
+    }
+
+    const result = await response.json();
+
+    if (
+        result.responseStatus !== 200 ||
+        !result.responseData?.translatedText
+    ) {
+        throw new Error(
+            result.responseDetails || "Translation was unavailable."
+        );
+    }
+
+    return decodeTranslationEntities(result.responseData.translatedText);
+}
+
+async function translateText(text, sourceLanguage, targetLanguage) {
+    if (!text || typeof text !== "string") {
+        return text || "";
+    }
+
+    if (sourceLanguage === targetLanguage) {
+        return text;
+    }
+
+    if (
+        !["pt", "en"].includes(sourceLanguage) ||
+        !["pt", "en"].includes(targetLanguage)
+    ) {
+        return text;
+    }
+
+    const cacheKey = createTranslationCacheKey(
+        sourceLanguage,
+        targetLanguage,
+        text
+    );
+
+    const cached = readTranslationCache(cacheKey);
+
+    if (cached !== null) {
+        return cached;
+    }
+
+    try {
+        const chunks = splitTranslationText(text);
+        const translatedChunks = [];
+
+        for (const chunk of chunks) {
+            if (!chunk.trim()) {
+                translatedChunks.push(chunk);
+                continue;
+            }
+
+            const translated = await requestMyMemoryTranslation(
+                chunk,
+                sourceLanguage,
+                targetLanguage
+            );
+
+            translatedChunks.push(translated);
+        }
+
+        const result = translatedChunks.join("");
+
+        saveTranslationCache(cacheKey, result);
+
+        return result;
+
+    } catch (error) {
+        console.warn("Automatic translation failed:", error);
+
+        return text;
+    }
+}
+
+async function getLocalizedContent(data, field, targetLanguage) {
+    const originalText = data[field] || "";
+
+    const sourceLanguage =
+        data.sourceLanguage === "en" ? "en" : "pt";
+
+    return translateText(
+        originalText,
+        sourceLanguage,
+        targetLanguage
+    );
 }
 
 /* =========================
@@ -487,8 +680,7 @@ function createProjectCard(project, index) {
     const footer = document.createElement("div");
     footer.className = "card-foot";
 
-    // Only Granny Redux displays the development status.
-    if (project.name === "granny redux") {
+    if (project.name === "Granny Redux") {
         const status = document.createElement("span");
         status.className = "status";
         status.textContent = `● ${translate("soon")}`;
@@ -746,6 +938,11 @@ adminLogoutButton?.addEventListener("click", async () => {
 createUpdateButton?.addEventListener("click", () => {
     updateError.textContent = "";
     updateDate.value = getLocalDate();
+
+    if (updateSourceLanguage) {
+        updateSourceLanguage.value = "pt";
+    }
+
     updateEditorDialog.showModal();
 });
 
@@ -776,6 +973,7 @@ updateForm?.addEventListener("submit", async event => {
         await addDoc(collection(db, "updates"), {
             title: updateTitle.value.trim(),
             description: updateDescription.value.trim(),
+            sourceLanguage: updateSourceLanguage?.value || "pt",
             date: updateDate.value,
             createdAt: serverTimestamp()
         });
@@ -831,14 +1029,17 @@ function formatUpdateDate(dateString) {
    FIRESTORE UPDATES
 ========================= */
 
-function renderFirestoreUpdates() {
+async function renderFirestoreUpdates() {
     if (!updatesList) return;
+
+    const renderVersion = ++updatesRenderVersion;
+    const targetLanguage = language;
 
     updatesList
         .querySelectorAll("[data-firestore-update]")
         .forEach(element => element.remove());
 
-    latestUpdates.forEach(update => {
+    for (const update of latestUpdates) {
         const article = document.createElement("article");
         article.className = "update";
         article.dataset.firestoreUpdate = "true";
@@ -881,7 +1082,22 @@ function renderFirestoreUpdates() {
         }
 
         updatesList.appendChild(article);
-    });
+
+        if (
+            update.sourceLanguage &&
+            update.sourceLanguage !== targetLanguage
+        ) {
+            const [translatedTitle, translatedDescription] = await Promise.all([
+                getLocalizedContent(update, "title", targetLanguage),
+                getLocalizedContent(update, "description", targetLanguage)
+            ]);
+
+            if (renderVersion !== updatesRenderVersion) return;
+
+            title.textContent = translatedTitle;
+            description.textContent = translatedDescription;
+        }
+    }
 }
 
 const updatesQuery = query(
@@ -925,6 +1141,10 @@ createPostButton?.addEventListener("click", () => {
 
     postError.textContent = "";
     postForm.reset();
+
+    if (postSourceLanguage) {
+        postSourceLanguage.value = "pt";
+    }
 
     postImagePreview.hidden = true;
     postImagePreview.removeAttribute("src");
@@ -1022,18 +1242,17 @@ postForm?.addEventListener("submit", async event => {
     try {
         let imageUrl = "";
 
-        // Upload image to Cloudinary
         if (imageFile) {
             imageUrl = await uploadPostImage(imageFile);
         }
 
-        // Save post in Firestore
         const postReference = await addDoc(
             collection(db, "posts"),
             {
-                title: title,
-                description: description,
-                imageUrl: imageUrl,
+                title,
+                description,
+                sourceLanguage: postSourceLanguage?.value || "pt",
+                imageUrl,
                 date: getLocalDate(),
                 createdAt: serverTimestamp(),
                 author: user.uid
@@ -1070,8 +1289,11 @@ postForm?.addEventListener("submit", async event => {
    POSTS: RENDER
 ========================= */
 
-function renderPosts(posts) {
+async function renderPosts(posts) {
     if (!postsList) return;
+
+    const renderVersion = ++postsRenderVersion;
+    const targetLanguage = language;
 
     postsList.replaceChildren();
 
@@ -1083,7 +1305,7 @@ function renderPosts(posts) {
         return;
     }
 
-    posts.forEach(post => {
+    for (const post of posts) {
         const data = post.data();
 
         const card = document.createElement("article");
@@ -1111,7 +1333,6 @@ function renderPosts(posts) {
 
         card.append(date, title, description);
 
-        // ADMIN DELETE BUTTON
         if (isAdmin) {
             const deleteButton = document.createElement("button");
 
@@ -1129,10 +1350,7 @@ function renderPosts(posts) {
                 deleteButton.disabled = true;
 
                 try {
-                    // Delete post from Firestore.
-                    // The Cloudinary image remains stored separately.
                     await deleteDoc(doc(db, "posts", post.id));
-
                 } catch (error) {
                     console.error("Post deletion error:", error);
 
@@ -1146,18 +1364,31 @@ function renderPosts(posts) {
         }
 
         postsList.appendChild(card);
-    });
+
+        if (
+            data.sourceLanguage &&
+            data.sourceLanguage !== targetLanguage
+        ) {
+            const [translatedTitle, translatedDescription] = await Promise.all([
+                getLocalizedContent(data, "title", targetLanguage),
+                getLocalizedContent(data, "description", targetLanguage)
+            ]);
+
+            if (renderVersion !== postsRenderVersion) return;
+
+            title.textContent = translatedTitle;
+            description.textContent = translatedDescription;
+        }
+    }
+}
+
+function renderLatestPosts() {
+    renderPosts(latestPosts);
 }
 
 /* =========================
    POSTS: FIRESTORE LISTENER
 ========================= */
-
-let latestPosts = [];
-
-function renderLatestPosts() {
-    renderPosts(latestPosts);
-}
 
 const postsQuery = query(
     collection(db, "posts"),
@@ -1195,12 +1426,7 @@ postEditorDialog?.addEventListener("close", () => {
    LANGUAGE
 ========================= */
 
-function changeLanguage() {
-    language = language === "pt" ? "en" : "pt";
-
-    document.documentElement.lang =
-        language === "pt" ? "pt-BR" : "en";
-
+function applyStaticTranslations() {
     document.querySelectorAll("[data-i18n]").forEach(element => {
         const key = element.dataset.i18n;
         const translated = translations[language][key];
@@ -1214,10 +1440,6 @@ function changeLanguage() {
         time.textContent = formatUpdateDate(time.dataset.date);
     });
 
-    if (langToggle) {
-        langToggle.textContent = language === "pt" ? "EN" : "PT";
-    }
-
     if (postTitle) {
         postTitle.placeholder = translate("postTitlePlaceholder");
     }
@@ -1229,9 +1451,33 @@ function changeLanguage() {
     if (publishPostButton) {
         publishPostButton.textContent = translate("publishPost");
     }
+}
+
+function changeLanguage(nextLanguage) {
+    if (!["pt", "en"].includes(nextLanguage)) {
+        return;
+    }
+
+    language = nextLanguage;
+
+    try {
+        localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+    } catch (error) {
+        console.warn("Could not save language preference:", error);
+    }
+
+    document.documentElement.lang =
+        language === "pt" ? "pt-BR" : "en";
+
+    if (languageSelect) {
+        languageSelect.value = language;
+    }
+
+    applyStaticTranslations();
 
     renderProjects();
     renderFirestoreUpdates();
+    renderLatestPosts();
 
     if (
         currentProjectIndex !== null &&
@@ -1241,7 +1487,9 @@ function changeLanguage() {
     }
 }
 
-langToggle?.addEventListener("click", changeLanguage);
+languageSelect?.addEventListener("change", () => {
+    changeLanguage(languageSelect.value);
+});
 
 /* =========================
    NAVIGATION EVENTS
@@ -1282,7 +1530,7 @@ function initializeWebsite() {
         !dialogCategory ||
         !dialogDescription ||
         !dialogDownloads ||
-        !langToggle ||
+        !languageSelect ||
         !closeDialogButton
     ) {
         console.error(
@@ -1292,21 +1540,19 @@ function initializeWebsite() {
         return;
     }
 
+    languageSelect.value = language;
+
+    document.documentElement.lang =
+        language === "pt" ? "pt-BR" : "en";
+
+    applyStaticTranslations();
+
     showPage(getPageFromHash(), false);
 
     renderProjects();
 
-    document.querySelectorAll("time[data-date]").forEach(time => {
-        time.textContent = formatUpdateDate(time.dataset.date);
-    });
-
-    if (postTitle) {
-        postTitle.placeholder = translate("postTitlePlaceholder");
-    }
-
-    if (postDescription) {
-        postDescription.placeholder = translate("postDescriptionPlaceholder");
-    }
+    renderFirestoreUpdates();
+    renderLatestPosts();
 
     console.log("MR GREEN: Website loaded successfully!");
 }
