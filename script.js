@@ -1319,12 +1319,13 @@ async function renderPosts(posts) {
     if (posts.length === 0) {
         const empty = document.createElement("p");
         empty.textContent = translate("noPosts");
-
         postsList.appendChild(empty);
         return;
     }
 
     for (const post of posts) {
+        if (renderVersion !== postsRenderVersion) return;
+
         const data = post.data();
 
         const card = document.createElement("article");
@@ -1332,11 +1333,9 @@ async function renderPosts(posts) {
 
         if (data.imageUrl) {
             const image = document.createElement("img");
-
             image.src = data.imageUrl;
             image.alt = data.title || "Post image";
             image.loading = "lazy";
-
             card.appendChild(image);
         }
 
@@ -1354,16 +1353,13 @@ async function renderPosts(posts) {
 
         if (isAdmin) {
             const deleteButton = document.createElement("button");
-
             deleteButton.type = "button";
             deleteButton.className = "delete-button";
-            deleteButton.textContent = language === "pt" ? "Excluir" : "Delete";
+            deleteButton.textContent = "Delete";
 
             deleteButton.addEventListener("click", async () => {
                 const confirmed = confirm(
-                    language === "pt"
-                        ? "Tem certeza de que deseja excluir este post?"
-                        : "Are you sure you want to delete this post?"
+                    "Are you sure you want to delete this post?"
                 );
 
                 if (!confirmed) return;
@@ -1374,13 +1370,7 @@ async function renderPosts(posts) {
                     await deleteDoc(doc(db, "posts", post.id));
                 } catch (error) {
                     console.error("Post deletion error:", error);
-
-                    alert(
-                        language === "pt"
-                            ? "Não foi possível excluir o post."
-                            : "Could not delete post."
-                    );
-
+                    alert("Could not delete this post. Check Firebase permissions.");
                     deleteButton.disabled = false;
                 }
             });
@@ -1390,30 +1380,24 @@ async function renderPosts(posts) {
 
         postsList.appendChild(card);
 
-        /*
-           CORREÇÃO:
-           Posts antigos sem sourceLanguage também
-           são tratados como português.
-        */
-
-        const sourceLanguage =
-            data.sourceLanguage === "en" ? "en" : "pt";
+        // Posts antigos sem sourceLanguage são considerados em português.
+        const sourceLanguage = data.sourceLanguage === "en" ? "en" : "pt";
 
         if (sourceLanguage !== targetLanguage) {
-            const [translatedTitle, translatedDescription] = await Promise.all([
-                getLocalizedContent(data, "title", targetLanguage),
-                getLocalizedContent(data, "description", targetLanguage)
-            ]);
+            try {
+                const [translatedTitle, translatedDescription] = await Promise.all([
+                    getLocalizedContent(data, "title", targetLanguage),
+                    getLocalizedContent(data, "description", targetLanguage)
+                ]);
 
-            if (
-                renderVersion !== postsRenderVersion ||
-                targetLanguage !== language
-            ) {
-                return;
+                if (renderVersion !== postsRenderVersion) return;
+
+                title.textContent = translatedTitle;
+                description.textContent = translatedDescription;
+
+            } catch (error) {
+                console.error("Post translation error:", error);
             }
-
-            title.textContent = translatedTitle;
-            description.textContent = translatedDescription;
         }
     }
 }
