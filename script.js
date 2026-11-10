@@ -562,7 +562,7 @@ function getNewManualOrder(items, getData = item => item) {
 }
 
 /* =========================
-   AUTOMATIC LANGUAGE DETECTION
+   IMPROVED LANGUAGE DETECTION
 ========================= */
 
 const portugueseWords = new Set([
@@ -577,7 +577,13 @@ const portugueseWords = new Set([
     "mais", "aqui", "agora", "novo", "nova",
     "novos", "novas", "em", "do", "da", "dos",
     "das", "que", "por", "como", "seu", "sua",
-    "seus", "suas", "breve", "hoje", "amanhã"
+    "seus", "suas", "breve", "hoje", "amanhã",
+    "olá", "oi", "obrigado", "obrigada",
+    "bem", "vindo", "vinda", "muito", "bom",
+    "boa", "dia", "noite", "tarde", "também",
+    "porque", "quando", "onde", "estou", "somos",
+    "tem", "tenho", "fazer", "feito", "chegou",
+    "lançamento", "atualizado", "disponível"
 ]);
 
 const englishWords = new Set([
@@ -592,7 +598,13 @@ const englishWords = new Set([
     "image", "more", "new", "here", "now",
     "today", "tomorrow", "for", "of", "to",
     "in", "on", "and", "but", "not", "your",
-    "you", "we", "our", "it", "its", "a", "an"
+    "you", "we", "our", "it", "its", "a", "an",
+    "hello", "hi", "hey", "thanks", "thank",
+    "welcome", "good", "morning", "night",
+    "evening", "very", "much", "because",
+    "when", "where", "who", "what", "how",
+    "been", "being", "make", "made", "arrived",
+    "released", "available", "coming"
 ]);
 
 function detectSourceLanguage(text, fallback = "pt") {
@@ -608,18 +620,50 @@ function detectSourceLanguage(text, fallback = "pt") {
 
     const words = normalized.split(/\s+/).filter(Boolean);
 
+    if (words.length === 0) {
+        return fallback === "en" ? "en" : "pt";
+    }
+
+    // Palavras curtas e conhecidas
+    const shortWords = {
+        oi: "pt",
+        ola: "pt",
+        obrigado: "pt",
+        obrigada: "pt",
+        sim: "pt",
+        nao: "pt",
+        hi: "en",
+        hey: "en",
+        hello: "en",
+        yes: "en",
+        no: "en"
+    };
+
+    if (words.length <= 2) {
+        for (const word of words) {
+            if (shortWords[word]) {
+                return shortWords[word];
+            }
+        }
+
+        return fallback === "en" ? "en" : "pt";
+    }
+
     let portugueseScore = 0;
     let englishScore = 0;
 
     for (const word of words) {
-        if (portugueseWords.has(word)) portugueseScore += 2;
-        if (englishWords.has(word)) englishScore += 2;
+        if (portugueseWords.has(word)) {
+            portugueseScore += 2;
+        }
+
+        if (englishWords.has(word)) {
+            englishScore += 2;
+        }
     }
 
-    const original = text.toLowerCase();
-
-    if (/[ãõçáéíóúâêô]/i.test(original)) {
-        portugueseScore += 4;
+    if (/[ãõçáéíóúâêô]/i.test(text)) {
+        portugueseScore += 5;
     }
 
     if (englishScore > portugueseScore) return "en";
@@ -628,97 +672,13 @@ function detectSourceLanguage(text, fallback = "pt") {
     return fallback === "en" ? "en" : "pt";
 }
 
-function detectContentLanguage(data) {
-    const combinedText = `${data.title || ""} ${data.description || ""}`;
-
-    return detectSourceLanguage(
-        combinedText,
-        data.sourceLanguage || "pt"
-    );
-}
-
 /* =========================
-   AUTOMATIC TRANSLATION
+   SAFE MYMEMORY TRANSLATION
 ========================= */
 
-const TRANSLATION_CACHE_PREFIX = "mrGreenTranslation_";
-const MYMEMORY_URL = "https://api.mymemory.translated.net/get";
-const MAX_TRANSLATION_CHUNK = 450;
-
-function createTranslationCacheKey(source, target, text) {
-    const value = `${source}|${target}|${text}`;
-
-    let hash = 2166136261;
-
-    for (let i = 0; i < value.length; i++) {
-        hash ^= value.charCodeAt(i);
-        hash = Math.imul(hash, 16777619);
-    }
-
-    return TRANSLATION_CACHE_PREFIX + (hash >>> 0).toString(16);
-}
-
-function readTranslationCache(key) {
-    try {
-        return localStorage.getItem(key);
-    } catch {
-        return null;
-    }
-}
-
-function saveTranslationCache(key, value) {
-    try {
-        localStorage.setItem(key, value);
-    } catch (error) {
-        console.warn("Translation cache could not be saved:", error);
-    }
-}
-
-function splitTranslationText(text) {
-    const tokens = text.match(/\s+|[^\s]+/g) || [];
-    const chunks = [];
-
-    let current = "";
-
-    for (const token of tokens) {
-        if (
-            current.length + token.length > MAX_TRANSLATION_CHUNK &&
-            current
-        ) {
-            chunks.push(current);
-            current = "";
-        }
-
-        if (token.length > MAX_TRANSLATION_CHUNK) {
-            if (current) {
-                chunks.push(current);
-                current = "";
-            }
-
-            for (let i = 0; i < token.length; i += MAX_TRANSLATION_CHUNK) {
-                chunks.push(token.slice(i, i + MAX_TRANSLATION_CHUNK));
-            }
-
-            continue;
-        }
-
-        current += token;
-    }
-
-    if (current) chunks.push(current);
-
-    return chunks;
-}
-
-function decodeTranslationEntities(value) {
-    const textarea = document.createElement("textarea");
-
-    textarea.innerHTML = value;
-
-    return textarea.value;
-}
-
 async function requestMyMemoryTranslation(text, source, target) {
+    if (!text || !text.trim()) return text;
+
     const params = new URLSearchParams({
         q: text,
         langpair: `${source}|${target}`
@@ -740,24 +700,43 @@ async function requestMyMemoryTranslation(text, source, target) {
         result.responseStatus !== 200 ||
         !result.responseData?.translatedText
     ) {
-        throw new Error(
-            result.responseDetails || "Translation was unavailable."
-        );
+        throw new Error("Invalid translation response.");
     }
 
-    return decodeTranslationEntities(
+    const translated = decodeTranslationEntities(
         result.responseData.translatedText
-    );
+    ).trim();
+
+    // Não aceitar respostas suspeitas do serviço
+    if (
+        !translated ||
+        translated.toLowerCase().includes("google traduc") ||
+        translated.toLowerCase().includes("mymemory")
+    ) {
+        throw new Error("Invalid translation returned.");
+    }
+
+    return translated;
 }
 
 async function translateText(text, sourceLanguage, targetLanguage) {
-    if (!text || typeof text !== "string") return text || "";
-    if (sourceLanguage === targetLanguage) return text;
+    if (!text || typeof text !== "string") {
+        return text || "";
+    }
+
+    if (sourceLanguage === targetLanguage) {
+        return text;
+    }
 
     if (
         !["pt", "en"].includes(sourceLanguage) ||
         !["pt", "en"].includes(targetLanguage)
     ) {
+        return text;
+    }
+
+    // Não traduzir palavras ou frases muito curtas
+    if (text.trim().length <= 3) {
         return text;
     }
 
@@ -769,7 +748,9 @@ async function translateText(text, sourceLanguage, targetLanguage) {
 
     const cached = readTranslationCache(cacheKey);
 
-    if (cached !== null) return cached;
+    if (cached !== null) {
+        return cached;
+    }
 
     try {
         const chunks = splitTranslationText(text);
@@ -792,33 +773,22 @@ async function translateText(text, sourceLanguage, targetLanguage) {
 
         const result = translatedChunks.join("");
 
+        if (!result.trim()) {
+            return text;
+        }
+
         saveTranslationCache(cacheKey, result);
 
         return result;
 
     } catch (error) {
-        console.warn("Automatic translation failed:", error);
+        console.warn(
+            "Automatic translation failed. Original text preserved:",
+            error
+        );
 
         return text;
     }
-}
-
-async function getLocalizedContent(
-    data,
-    field,
-    targetLanguage,
-    sourceOverride = null
-) {
-    const originalText = data[field] || "";
-
-    const sourceLanguage =
-        sourceOverride || detectContentLanguage(data);
-
-    return translateText(
-        originalText,
-        sourceLanguage,
-        targetLanguage
-    );
 }
 
 /* =========================
