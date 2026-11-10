@@ -1418,3 +1418,19 @@ footer {
         margin-right: 18px;
     }
 }
+.edit-button {
+    padding: 9px 16px;
+    margin: 8px 8px 8px 25px;
+    border: 1px solid var(--tag-border);
+    border-radius: 9px;
+    background: var(--tag-bg);
+    color: var(--accent);
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+    .edit-button:hover {
+        border-color: var(--accent);
+        transform: translateY(-2px);
+    }
