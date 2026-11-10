@@ -365,7 +365,7 @@ const cancelPostButton = document.getElementById("cancelPostButton");
 const postsList = document.getElementById("postsList");
 
 /* =========================
-   COMMENTS
+   COMMENTS AND PROFILES
 ========================= */
 
 const commentsFeature = initComments({
@@ -500,7 +500,6 @@ async function moveItem(type, index, direction) {
     const newIndex = index + direction;
 
     if (index < 0 || index >= currentItems.length) return;
-
     if (newIndex < 0 || newIndex >= currentItems.length) return;
 
     const oldItems = [...currentItems];
@@ -562,7 +561,7 @@ function getNewManualOrder(items, getData = item => item) {
 }
 
 /* =========================
-   IMPROVED LANGUAGE DETECTION
+   LANGUAGE DETECTION
 ========================= */
 
 const portugueseWords = new Set([
@@ -604,7 +603,7 @@ const englishWords = new Set([
     "evening", "very", "much", "because",
     "when", "where", "who", "what", "how",
     "been", "being", "make", "made", "arrived",
-    "released", "available", "coming"
+    "released", "available"
 ]);
 
 function detectSourceLanguage(text, fallback = "pt") {
@@ -624,7 +623,6 @@ function detectSourceLanguage(text, fallback = "pt") {
         return fallback === "en" ? "en" : "pt";
     }
 
-    // Palavras curtas e conhecidas
     const shortWords = {
         oi: "pt",
         ola: "pt",
@@ -673,8 +671,83 @@ function detectSourceLanguage(text, fallback = "pt") {
 }
 
 /* =========================
-   SAFE MYMEMORY TRANSLATION
+   CONTENT LANGUAGE
 ========================= */
+
+function detectContentLanguage(data) {
+    if (data?.sourceLanguage === "pt" || data?.sourceLanguage === "en") {
+        return data.sourceLanguage;
+    }
+
+    const content = `${data?.title || ""} ${data?.description || ""}`;
+
+    return detectSourceLanguage(content, "pt");
+}
+
+/* =========================
+   MYMEMORY TRANSLATION
+========================= */
+
+const MYMEMORY_URL = "https://api.mymemory.translated.net/get";
+const MAX_TRANSLATION_CHUNK = 450;
+const TRANSLATION_CACHE_PREFIX = "mrGreenTranslation_";
+
+function createTranslationCacheKey(source, target, text) {
+    return `${TRANSLATION_CACHE_PREFIX}${source}_${target}_${text}`;
+}
+
+function readTranslationCache(key) {
+    try {
+        const value = localStorage.getItem(key);
+
+        return value === null ? null : value;
+    } catch (error) {
+        console.warn("Translation cache read error:", error);
+        return null;
+    }
+}
+
+function saveTranslationCache(key, value) {
+    try {
+        localStorage.setItem(key, value);
+    } catch (error) {
+        console.warn("Translation cache save error:", error);
+    }
+}
+
+function decodeTranslationEntities(text) {
+    const textarea = document.createElement("textarea");
+
+    textarea.innerHTML = text;
+
+    return textarea.value;
+}
+
+function splitTranslationText(text) {
+    const chunks = [];
+    let remaining = text;
+
+    while (remaining.length > MAX_TRANSLATION_CHUNK) {
+        let splitPosition = remaining.lastIndexOf(
+            " ",
+            MAX_TRANSLATION_CHUNK
+        );
+
+        if (splitPosition <= 0) {
+            splitPosition = MAX_TRANSLATION_CHUNK;
+        }
+
+        chunks.push(remaining.slice(0, splitPosition));
+
+        remaining = remaining.slice(splitPosition);
+    }
+
+    if (remaining.length > 0) {
+        chunks.push(remaining);
+    }
+
+    return chunks;
+}
 
 async function requestMyMemoryTranslation(text, source, target) {
     if (!text || !text.trim()) return text;
@@ -707,7 +780,6 @@ async function requestMyMemoryTranslation(text, source, target) {
         result.responseData.translatedText
     ).trim();
 
-    // Não aceitar respostas suspeitas do serviço
     if (
         !translated ||
         translated.toLowerCase().includes("google traduc") ||
@@ -735,7 +807,6 @@ async function translateText(text, sourceLanguage, targetLanguage) {
         return text;
     }
 
-    // Não traduzir palavras ou frases muito curtas
     if (text.trim().length <= 3) {
         return text;
     }
@@ -789,6 +860,22 @@ async function translateText(text, sourceLanguage, targetLanguage) {
 
         return text;
     }
+}
+
+async function getLocalizedContent(data, field, targetLanguage, sourceLanguage) {
+    const original = data?.[field] || "";
+
+    if (!original) return "";
+
+    if (sourceLanguage === targetLanguage) {
+        return original;
+    }
+
+    return translateText(
+        original,
+        sourceLanguage,
+        targetLanguage
+    );
 }
 
 /* =========================
@@ -1110,6 +1197,8 @@ dialog?.addEventListener("click", event => {
 ========================= */
 
 adminLoginButton?.addEventListener("click", () => {
+    if (!adminLoginDialog) return;
+
     loginError.textContent = "";
 
     adminLoginDialog.showModal();
@@ -1356,7 +1445,6 @@ async function renderFirestoreUpdates() {
     if (!updatesList) return;
 
     const renderVersion = ++updatesRenderVersion;
-
     const targetLanguage = language;
 
     updatesList
@@ -1389,11 +1477,15 @@ async function renderFirestoreUpdates() {
 
         article.append(time, title, description);
 
-        commentsFeature.renderComments(
-            "updates",
-            update.id,
-            article
-        );
+        try {
+            commentsFeature.renderComments(
+                "updates",
+                update.id,
+                article
+            );
+        } catch (error) {
+            console.error("Update comments error:", error);
+        }
 
         const itemIndex = orderedUpdates.findIndex(
             item => item.id === update.id
@@ -1405,8 +1497,6 @@ async function renderFirestoreUpdates() {
             itemIndex,
             article
         );
-
-        // EDITAR ATUALIZAÇÃO
 
         if (isAdmin) {
             const editButton = document.createElement("button");
@@ -1428,7 +1518,6 @@ async function renderFirestoreUpdates() {
 
                 if (updateSourceLanguage) {
                     updateSourceLanguage.value =
-                        update.sourceLanguage ||
                         detectContentLanguage(update);
                 }
 
@@ -1437,8 +1526,6 @@ async function renderFirestoreUpdates() {
 
             article.appendChild(editButton);
         }
-
-        // EXCLUIR ATUALIZAÇÃO
 
         if (isAdmin) {
             const deleteButton = document.createElement("button");
@@ -1485,33 +1572,41 @@ async function renderFirestoreUpdates() {
         const sourceLanguage = detectContentLanguage(update);
 
         if (sourceLanguage !== targetLanguage) {
-            const [
-                translatedTitle,
-                translatedDescription
-            ] = await Promise.all([
-                getLocalizedContent(
-                    update,
-                    "title",
-                    targetLanguage,
-                    sourceLanguage
-                ),
-                getLocalizedContent(
-                    update,
-                    "description",
-                    targetLanguage,
-                    sourceLanguage
-                )
-            ]);
+            try {
+                const [
+                    translatedTitle,
+                    translatedDescription
+                ] = await Promise.all([
+                    getLocalizedContent(
+                        update,
+                        "title",
+                        targetLanguage,
+                        sourceLanguage
+                    ),
+                    getLocalizedContent(
+                        update,
+                        "description",
+                        targetLanguage,
+                        sourceLanguage
+                    )
+                ]);
 
-            if (
-                renderVersion !== updatesRenderVersion ||
-                targetLanguage !== language
-            ) {
-                return;
+                if (
+                    renderVersion !== updatesRenderVersion ||
+                    targetLanguage !== language
+                ) {
+                    return;
+                }
+
+                title.textContent = translatedTitle;
+                description.textContent = translatedDescription;
+
+            } catch (error) {
+                console.error(
+                    "Update translation error:",
+                    error
+                );
             }
-
-            title.textContent = translatedTitle;
-            description.textContent = translatedDescription;
         }
     }
 }
@@ -1804,7 +1899,6 @@ async function renderPosts(posts) {
     if (!postsList) return;
 
     const renderVersion = ++postsRenderVersion;
-
     const targetLanguage = language;
 
     postsList.replaceChildren();
@@ -1813,7 +1907,6 @@ async function renderPosts(posts) {
         const empty = document.createElement("p");
 
         empty.className = "empty";
-
         empty.textContent = translate("noPosts");
 
         postsList.appendChild(empty);
@@ -1834,7 +1927,6 @@ async function renderPosts(posts) {
         const card = document.createElement("article");
 
         card.className = "post-card update";
-
         card.dataset.postId = post.id;
 
         if (data.imageUrl) {
@@ -1862,11 +1954,15 @@ async function renderPosts(posts) {
 
         card.append(date, title, description);
 
-        commentsFeature.renderComments(
-            "posts",
-            post.id,
-            card
-        );
+        try {
+            commentsFeature.renderComments(
+                "posts",
+                post.id,
+                card
+            );
+        } catch (error) {
+            console.error("Post comments error:", error);
+        }
 
         const itemIndex = orderedPosts.findIndex(
             item => item.id === post.id
@@ -1878,8 +1974,6 @@ async function renderPosts(posts) {
             itemIndex,
             card
         );
-
-        // EDITAR POST
 
         if (isAdmin) {
             const editButton = document.createElement("button");
@@ -1903,7 +1997,6 @@ async function renderPosts(posts) {
 
                 if (postSourceLanguage) {
                     postSourceLanguage.value =
-                        data.sourceLanguage ||
                         detectContentLanguage(data);
                 }
 
@@ -1930,8 +2023,6 @@ async function renderPosts(posts) {
 
             card.appendChild(editButton);
         }
-
-        // EXCLUIR POST
 
         if (isAdmin) {
             const deleteButton = document.createElement("button");
@@ -2009,9 +2100,7 @@ async function renderPosts(posts) {
                 }
 
                 title.textContent = translatedTitle;
-
-                description.textContent =
-                    translatedDescription;
+                description.textContent = translatedDescription;
 
             } catch (error) {
                 console.error(
@@ -2150,9 +2239,7 @@ function changeLanguage(nextLanguage) {
     applyStaticTranslations();
 
     renderProjects();
-
     renderFirestoreUpdates();
-
     renderLatestPosts();
 
     commentsFeature.refreshLanguage();
@@ -2229,9 +2316,7 @@ function initializeWebsite() {
     showPage(getPageFromHash(), false);
 
     renderProjects();
-
     renderFirestoreUpdates();
-
     renderLatestPosts();
 
     console.log(
