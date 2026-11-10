@@ -430,7 +430,7 @@ function sortByManualOrder(items, getData = item => item) {
 }
 
 function createReorderControls(type, items, index, card) {
-    if (!isAdmin || items.length <= 2) return;
+    if (!isAdmin || items.length < 2) return;
 
     const controls = document.createElement("div");
     controls.className = "reorder-controls";
@@ -499,7 +499,7 @@ async function moveItem(type, index, direction) {
         ? sortByManualOrder(latestUpdates)
         : sortByManualOrder(latestPosts, post => post.data());
 
-    if (currentItems.length <= 2) return;
+    if (currentItems.length < 2) return;
 
     if (!Number.isInteger(index)) return;
 
