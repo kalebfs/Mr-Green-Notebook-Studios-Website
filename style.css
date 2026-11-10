@@ -1377,3 +1377,44 @@ footer {
     --button-hover: #ffe27a;
     --button-text: #171204;
 }
+/* =========================
+   REORDER CONTROLS
+========================= */
+
+.reorder-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 14px 25px 20px;
+}
+
+.reorder-button {
+    width: 38px;
+    height: 36px;
+    border: 1px solid var(--tag-border);
+    border-radius: 9px;
+    background: var(--tag-bg);
+    color: var(--accent);
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+    .reorder-button:hover:not(:disabled) {
+        background: var(--nav-hover-bg);
+        border-color: var(--accent);
+        transform: translateY(-2px);
+    }
+
+    .reorder-button:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+    }
+
+@media (max-width: 520px) {
+    .reorder-controls {
+        margin-left: 18px;
+        margin-right: 18px;
+    }
+}
