@@ -1,7 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
 
 import { initComments } from "./comments.js";
-
 import { initProfiles } from "./profiles.js";
 
 import {
@@ -21,8 +20,6 @@ import {
     serverTimestamp,
     deleteDoc,
     doc,
-    getDoc,
-    setDoc
 } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
 
 /* =========================
@@ -123,12 +120,6 @@ const translations = {
         postPublishError: "Não foi possível publicar. Verifique o Firebase.",
         postLoadingError: "Não foi possível carregar as publicações.",
 
-        updateOneTitle: "O site do Mr Green Notebook Studios foi criado!",
-        updateOneText: "Esta é a primeira versão do portal. Em breve, mais projetos e novidades serão adicionados.",
-
-        updateTwoTitle: "Mais novidades chegando",
-        updateTwoText: "Acompanhe esta página para conhecer os próximos lançamentos.",
-
         comingSoon: "EM BREVE",
 
         aboutTitle: "Sobre o estúdio",
@@ -194,12 +185,6 @@ const translations = {
         postPermissionError: "You do not have permission to publish.",
         postPublishError: "Could not publish. Check Firebase.",
         postLoadingError: "Could not load posts.",
-
-        updateOneTitle: "The Mr Green Notebook Studios website was created!",
-        updateOneText: "This is the first version of the portal. More projects and news will be added soon.",
-
-        updateTwoTitle: "More news coming soon",
-        updateTwoText: "Check this page to discover upcoming releases.",
 
         comingSoon: "COMING SOON",
 
@@ -1683,10 +1668,6 @@ function initializeWebsite() {
 
     applyStaticTranslations();
 
-    migrateInitialUpdates().catch(error => {
-        console.error("Erro ao migrar atualizações iniciais:", error);
-    });
-
     showPage(getPageFromHash(), false);
 
     renderProjects();
@@ -1694,40 +1675,6 @@ function initializeWebsite() {
     renderLatestPosts();
 
     console.log("MR GREEN: Website loaded successfully!");
-}
-
-async function migrateInitialUpdates() {
-    const initialUpdates = [
-        {
-            id: "initial-site-created",
-            title: translations.pt.updateOneTitle,
-            description: translations.pt.updateOneText,
-            date: "2026-11-04",
-            sourceLanguage: "pt"
-        },
-        {
-            id: "coming-soon",
-            title: translations.pt.updateTwoTitle,
-            description: translations.pt.updateTwoText,
-            date: "",
-            dateLabelKey: "comingSoon",
-            sourceLanguage: "pt"
-        }
-    ];
-
-    for (const update of initialUpdates) {
-        const updateRef = doc(db, "updates", update.id);
-        const existingUpdate = await getDoc(updateRef);
-
-        if (!existingUpdate.exists()) {
-            const { id, ...data } = update;
-
-            await setDoc(updateRef, {
-                ...data,
-                createdAt: serverTimestamp()
-            });
-        }
-    }
 }
 
 initializeWebsite();
