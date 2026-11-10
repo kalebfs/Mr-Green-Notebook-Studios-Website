@@ -2031,30 +2031,40 @@ function renderLatestPosts() {
    POSTS: FIRESTORE LISTENER
 ========================= */
 
-const postsQuery = query(
-    collection(db, "posts"),
-    orderBy("createdAt", "desc")
-);
-
 onSnapshot(
-    postsQuery,
+    collection(db, "posts"),
     snapshot => {
-        latestPosts = sortByManualOrder(
-            snapshot.docs,
-            post => post.data()
-        );
+        latestPosts = [...snapshot.docs].sort((a, b) => {
+            const dataA = a.data();
+            const dataB = b.data();
+
+            const orderA = typeof dataA.manualOrder === "number"
+                ? dataA.manualOrder
+                : Infinity;
+
+            const orderB = typeof dataB.manualOrder === "number"
+                ? dataB.manualOrder
+                : Infinity;
+
+            if (orderA !== orderB) {
+                return orderA - orderB;
+            }
+
+            const dateA = dataA.createdAt?.toMillis?.() || 0;
+            const dateB = dataB.createdAt?.toMillis?.() || 0;
+
+            return dateB - dateA;
+        });
+
+        console.log("MR GREEN: Posts encontrados:", latestPosts.length);
 
         renderLatestPosts();
     },
     error => {
-        console.error(
-            "Could not load posts:",
-            error
-        );
+        console.error("Could not load posts:", error);
 
         if (postsList) {
-            postsList.textContent =
-                translate("postLoadingError");
+            postsList.textContent = translate("postLoadingError");
         }
     }
 );
