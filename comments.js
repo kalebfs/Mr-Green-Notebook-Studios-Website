@@ -12,6 +12,7 @@ import {
     addDoc,
     deleteDoc,
     doc,
+    getDoc,
     onSnapshot,
     orderBy,
     query,
@@ -98,7 +99,8 @@ export function initComments({ auth, db, adminUid, getLanguage }) {
     }
 
     // Atualiza o nome e a foto dos autores em tempo real.
-    function watchCommentAuthor(uid, authorElement) {
+
+    function watchCommentAuthor(uid, authorElement, fallback = {}) {
         if (!uid || !authorElement) return;
 
         if (!authorElements.has(uid)) {
@@ -107,62 +109,74 @@ export function initComments({ auth, db, adminUid, getLanguage }) {
 
         authorElements.get(uid).add(authorElement);
 
+        function updateAuthor(profile = {}) {
+            const usernameElement = authorElement.querySelector(
+                ".comment-author-username"
+            );
+
+            const avatar = authorElement.querySelector(".comment-avatar");
+
+            if (!usernameElement || !avatar) return;
+
+            const username =
+                profile.username ||
+                fallback.username ||
+                fallback.authorUsername ||
+                fallback.authorName ||
+                "user";
+
+            const photoURL =
+                profile.photoURL ||
+                fallback.photoURL ||
+                fallback.authorPhotoURL ||
+                "";
+
+            usernameElement.textContent = `@${username}`;
+
+            avatar.replaceChildren();
+
+            if (photoURL) {
+                const image = document.createElement("img");
+
+                image.src = photoURL;
+                image.alt = "Foto de perfil";
+
+                image.onerror = () => {
+                    image.remove();
+                    avatar.textContent =
+                        username.charAt(0).toUpperCase() || "U";
+                };
+
+                avatar.appendChild(image);
+            } else {
+                avatar.textContent =
+                    username.charAt(0).toUpperCase() || "U";
+            }
+        }
+
+        // Mostra os dados salvos no comentário enquanto busca o perfil.
+        updateAuthor(fallback);
+
         if (profileListeners.has(uid)) return;
 
         const profileRef = doc(db, "users", uid);
 
-        const unsubscribe = onSnapshot(profileRef, snapshot => {
-            const profile = snapshot.exists()
-                ? snapshot.data()
-                : {};
+        const unsubscribe = onSnapshot(
+            profileRef,
+            snapshot => {
+                const profile = snapshot.exists()
+                    ? snapshot.data()
+                    : {};
 
-            const username = profile.username || "user";
-            const photoURL = profile.photoURL || "";
-
-            const elements = authorElements.get(uid);
-
-            if (!elements) return;
-
-            elements.forEach(element => {
-                if (!element.isConnected) {
-                    elements.delete(element);
-                    return;
-                }
-
-                const avatar = element.querySelector(".comment-avatar");
-                const usernameElement = element.querySelector(
-                    ".comment-author-username"
+                updateAuthor(profile);
+            },
+            error => {
+                console.error(
+                    "Erro ao carregar perfil do autor:",
+                    error
                 );
-
-                if (!avatar || !usernameElement) return;
-
-                // Somente o @username é exibido.
-                usernameElement.textContent = `@${username}`;
-
-                // Atualiza a foto.
-                avatar.replaceChildren();
-
-                if (photoURL) {
-                    const image = document.createElement("img");
-
-                    image.src = photoURL;
-                    image.alt = "Foto de perfil";
-
-                    image.onerror = () => {
-                        image.remove();
-                        avatar.textContent =
-                            username.charAt(0).toUpperCase() || "U";
-                    };
-
-                    avatar.appendChild(image);
-                } else {
-                    avatar.textContent =
-                        username.charAt(0).toUpperCase() || "U";
-                }
-            });
-        }, error => {
-            console.error("Erro ao carregar perfil do autor:", error);
-        });
+            }
+        );
 
         profileListeners.set(uid, unsubscribe);
     }
@@ -435,17 +449,53 @@ export function initComments({ auth, db, adminUid, getLanguage }) {
                 submitButton.disabled = true;
                 submitButton.textContent = "Publicando...";
 
+                let profile = {};
+
+                try {
+                    const profileSnapshot = await getDoc(
+                        doc(db, "users", user.uid)
+                    );
+
+                    if (profileSnapshot.exists()) {
+                        profile = profileSnapshot.data();
+                    }
+                } catch (profileError) {
+                    console.error(
+                        "Erro ao buscar perfil para o comentário:",
+                        profileError
+                    );
+                }
+
+                const authorName =
+                    profile.displayName ||
+                    user.displayName ||
+                    "User";
+
+                const authorUsername =
+                    profile.username ||
+                    user.displayName ||
+                    "user";
+
+                const authorPhotoURL =
+                    profile.photoURL ||
+                    user.photoURL ||
+                    "";
+
                 await addDoc(commentsCollection, {
                     text,
                     authorUid: user.uid,
-                    authorName: user.displayName || "User",
+                    authorName,
+                    authorUsername,
+                    authorPhotoURL,
                     createdAt: serverTimestamp()
                 });
 
                 commentInput.value = "";
+
             } catch (error) {
                 console.error("Erro ao publicar comentário:", error);
                 alert("Não foi possível publicar o comentário.");
+
             } finally {
                 submitButton.disabled = false;
                 submitButton.textContent = t("send");
@@ -501,7 +551,11 @@ export function initComments({ auth, db, adminUid, getLanguage }) {
 
                 // Busca username e foto no documento users/{uid}.
                 if (comment.authorUid) {
-                    watchCommentAuthor(comment.authorUid, author);
+                    watchCommentAuthor(comment.authorUid, author, {
+                        authorName: comment.authorName || "user",
+                        username: comment.authorUsername || "",
+                        photoURL: comment.authorPhotoURL || ""
+                    });
                 }
 
                 // Clicar no nome ou na foto abre o perfil.

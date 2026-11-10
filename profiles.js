@@ -156,30 +156,67 @@ export function initProfiles({ auth, db, accountBar, getLanguage }) {
         return runTransaction(db, async transaction => {
             const profileSnapshot = await transaction.get(userRef);
 
-            if (profileSnapshot.exists()) {
-                return profileSnapshot.data();
-            }
+            const baseName =
+                slugify(user.displayName || "user") || "user";
 
-            const baseName = slugify(user.displayName || "user") || "user";
-
-            const username =
+            const defaultUsername =
                 `${baseName.slice(0, 12)}_${user.uid.slice(0, 6).toLowerCase()}`;
 
-            const usernameRef = doc(db, "usernames", username);
+            if (profileSnapshot.exists()) {
+                const profile = profileSnapshot.data();
+                const updates = {};
 
+                if (!profile.uid) {
+                    updates.uid = user.uid;
+                }
+
+                if (!profile.displayName) {
+                    updates.displayName = user.displayName || "User";
+                }
+
+                if (!profile.username) {
+                    updates.username = defaultUsername;
+                    updates.usernameLower = defaultUsername;
+                } else if (!profile.usernameLower) {
+                    updates.usernameLower = profile.username.toLowerCase();
+                }
+
+                if (typeof profile.bio !== "string") {
+                    updates.bio = "";
+                }
+
+                if (typeof profile.photoURL !== "string") {
+                    updates.photoURL = user.photoURL || "";
+                }
+
+                if (Object.keys(updates).length > 0) {
+                    updates.updatedAt = serverTimestamp();
+
+                    transaction.update(userRef, updates);
+                }
+
+                return {
+                    ...profile,
+                    ...updates
+                };
+            }
+
+            const usernameRef = doc(db, "usernames", defaultUsername);
             const usernameSnapshot = await transaction.get(usernameRef);
 
             if (usernameSnapshot.exists()) {
-                throw new Error("Não foi possível criar seu nome de usuário.");
+                throw new Error(
+                    "Não foi possível criar seu nome de usuário."
+                );
             }
 
             const newProfile = {
                 uid: user.uid,
                 displayName: user.displayName || "User",
-                username,
-                usernameLower: username,
+                username: defaultUsername,
+                usernameLower: defaultUsername,
                 bio: "",
-                photoURL: "",
+                photoURL: user.photoURL || "",
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp()
             };
