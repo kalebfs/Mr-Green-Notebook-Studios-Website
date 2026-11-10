@@ -1523,3 +1523,45 @@ footer {
         padding: 19px;
     }
 }
+
+
+.comment-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+}
+
+.comment-edit,
+.comment-delete {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 7px;
+    padding: 5px 9px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.comment-edit {
+    background: rgba(169, 133, 232, 0.12);
+    color: #bda0f5;
+}
+
+    .comment-edit:hover {
+        background: rgba(169, 133, 232, 0.25);
+    }
+
+.comment-delete {
+    background: rgba(217, 75, 97, 0.12);
+    color: #e87989;
+}
+
+    .comment-delete:hover {
+        background: rgba(217, 75, 97, 0.25);
+    }
+
+.comment-edited {
+    color: #999;
+    font-size: 11px;
+    margin-left: 5px;
+}
