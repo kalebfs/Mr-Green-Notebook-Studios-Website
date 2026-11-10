@@ -1505,13 +1505,16 @@ const updatesQuery = query(
     orderBy("createdAt", "desc")
 );
 
+
 onSnapshot(
     updatesQuery,
     snapshot => {
-        latestUpdates = snapshot.docs.map(document => ({
-            id: document.id,
-            ...document.data()
-        }));
+        latestUpdates = sortByManualOrder(
+            snapshot.docs.map(document => ({
+                id: document.id,
+                ...document.data()
+            }))
+        );
 
         renderFirestoreUpdates();
     },
@@ -1938,10 +1941,14 @@ const postsQuery = query(
     orderBy("createdAt", "desc")
 );
 
+
 onSnapshot(
     postsQuery,
     snapshot => {
-        latestPosts = snapshot.docs;
+        latestPosts = sortByManualOrder(
+            snapshot.docs,
+            post => post.data()
+        );
 
         renderLatestPosts();
     },
