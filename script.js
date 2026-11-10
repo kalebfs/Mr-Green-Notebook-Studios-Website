@@ -1,3 +1,4 @@
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
 
 import { initComments } from "./comments.js";
@@ -287,6 +288,10 @@ let postPreviewURL = null;
 let postsRenderVersion = 0;
 let updatesRenderVersion = 0;
 
+let editingUpdateId = null;
+let editingPostId = null;
+let editingPostImageUrl = "";
+
 let updatingOrder = {
     updates: false,
     posts: false
@@ -377,7 +382,6 @@ const profilesFeature = initProfiles({
     getLanguage: () => language
 });
 
-// A barra de conta fica acima dos posts.
 if (commentsFeature.accountBar && postsList?.parentElement) {
     postsList.parentElement.insertBefore(
         commentsFeature.accountBar,
@@ -403,14 +407,9 @@ function translate(key) {
     return translations[language][key] || key;
 }
 
-
-
 /* =========================
    MANUAL REORDER SYSTEM
 ========================= */
-
-// Mantém uma ordem consistente, inclusive quando alguns documentos
-// ainda não possuem manualOrder.
 
 function sortByManualOrder(items, getData = item => item) {
     return [...items].sort((a, b) => {
@@ -470,8 +469,6 @@ function createReorderControls(type, items, index, card) {
     card.appendChild(controls);
 }
 
-// Salva todos os números de ordem em uma única operação.
-
 async function saveManualOrder(type, items) {
     const batch = writeBatch(db);
 
@@ -486,9 +483,6 @@ async function saveManualOrder(type, items) {
 
     await batch.commit();
 }
-
-// Movimenta os itens usando exatamente a mesma lista
-// que está sendo exibida na tela.
 
 async function moveItem(type, index, direction) {
     if (!isAdmin || updatingOrder[type]) return;
@@ -518,8 +512,6 @@ async function moveItem(type, index, direction) {
 
     updatingOrder[type] = true;
 
-    // Atualiza os dados locais antes de salvar.
-
     if (type === "updates") {
         latestUpdates = newItems;
         renderFirestoreUpdates();
@@ -533,8 +525,6 @@ async function moveItem(type, index, direction) {
 
     } catch (error) {
         console.error("Reordering error:", error);
-
-        // Restaura a ordem anterior se o Firebase falhar.
 
         if (type === "updates") {
             latestUpdates = oldItems;
@@ -561,8 +551,6 @@ async function moveItem(type, index, direction) {
     }
 }
 
-// Novas publicações entram antes dos itens existentes.
-
 function getNewManualOrder(items, getData = item => item) {
     const manualOrders = items
         .map(item => getData(item).manualOrder)
@@ -572,7 +560,6 @@ function getNewManualOrder(items, getData = item => item) {
 
     return Math.min(...manualOrders) - 1;
 }
-
 
 /* =========================
    AUTOMATIC LANGUAGE DETECTION
@@ -1243,7 +1230,11 @@ adminLogoutButton?.addEventListener("click", async () => {
 ========================= */
 
 createUpdateButton?.addEventListener("click", () => {
+    editingUpdateId = null;
+
     updateError.textContent = "";
+
+    updateForm.reset();
 
     updateDate.value = getLocalDate();
 
@@ -1255,17 +1246,23 @@ createUpdateButton?.addEventListener("click", () => {
 });
 
 closeUpdateEditor?.addEventListener("click", () => {
+    editingUpdateId = null;
     updateEditorDialog.close();
 });
 
 updateEditorDialog?.addEventListener("click", event => {
     if (event.target === updateEditorDialog) {
+        editingUpdateId = null;
         updateEditorDialog.close();
     }
 });
 
+updateEditorDialog?.addEventListener("close", () => {
+    editingUpdateId = null;
+});
+
 /* =========================
-   PUBLISH UPDATE
+   SAVE UPDATE
 ========================= */
 
 updateForm?.addEventListener("submit", async event => {
@@ -1286,40 +1283,57 @@ updateForm?.addEventListener("submit", async event => {
     const title = updateTitle.value.trim();
     const description = updateDescription.value.trim();
 
+    if (!title || !description) {
+        updateError.textContent =
+            "Preencha o título e a descrição.";
+
+        return;
+    }
+
     const detectedLanguage = detectSourceLanguage(
         `${title} ${description}`,
         updateSourceLanguage?.value || "pt"
     );
 
-    const newOrder = getNewManualOrder(latestUpdates);
+    const updateData = {
+        title,
+        description,
+        sourceLanguage: detectedLanguage,
+        date: updateDate.value
+    };
 
     try {
-        const updateData = {
-            title,
-            description,
-            sourceLanguage: detectedLanguage,
-            date: updateDate.value,
-            createdAt: serverTimestamp()
-        };
+        if (editingUpdateId) {
+            await updateDoc(
+                doc(db, "updates", editingUpdateId),
+                updateData
+            );
 
-        if (newOrder !== null) {
-            updateData.manualOrder = newOrder;
+        } else {
+            const newOrder = getNewManualOrder(latestUpdates);
+
+            updateData.createdAt = serverTimestamp();
+
+            if (newOrder !== null) {
+                updateData.manualOrder = newOrder;
+            }
+
+            await addDoc(
+                collection(db, "updates"),
+                updateData
+            );
         }
 
-        await addDoc(
-            collection(db, "updates"),
-            updateData
-        );
+        editingUpdateId = null;
 
         updateForm.reset();
-
         updateEditorDialog.close();
 
     } catch (error) {
-        console.error("Update publishing error:", error);
+        console.error("Update save error:", error);
 
         updateError.textContent =
-            "Could not publish. Check Firebase permissions.";
+            "Could not save. Check Firebase permissions.";
     }
 });
 
@@ -1405,24 +1419,56 @@ async function renderFirestoreUpdates() {
 
         article.append(time, title, description);
 
-        // Comentários da atualização.
-
         commentsFeature.renderComments(
             "updates",
             update.id,
             article
         );
 
-        // Botões para reorganizar.
+        const itemIndex = orderedUpdates.findIndex(
+            item => item.id === update.id
+        );
 
         createReorderControls(
             "updates",
             orderedUpdates,
-            orderedUpdates.findIndex(item => item.id === update.id),
+            itemIndex,
             article
         );
 
-        // Excluir atualização.
+        // EDITAR ATUALIZAÇÃO
+
+        if (isAdmin) {
+            const editButton = document.createElement("button");
+
+            editButton.type = "button";
+            editButton.className = "edit-button";
+
+            editButton.textContent =
+                language === "pt" ? "Editar" : "Edit";
+
+            editButton.addEventListener("click", () => {
+                editingUpdateId = update.id;
+
+                updateError.textContent = "";
+
+                updateTitle.value = update.title || "";
+                updateDescription.value = update.description || "";
+                updateDate.value = update.date || getLocalDate();
+
+                if (updateSourceLanguage) {
+                    updateSourceLanguage.value =
+                        update.sourceLanguage ||
+                        detectContentLanguage(update);
+                }
+
+                updateEditorDialog.showModal();
+            });
+
+            article.appendChild(editButton);
+        }
+
+        // EXCLUIR ATUALIZAÇÃO
 
         if (isAdmin) {
             const deleteButton = document.createElement("button");
@@ -1505,7 +1551,6 @@ const updatesQuery = query(
     orderBy("createdAt", "desc")
 );
 
-
 onSnapshot(
     updatesQuery,
     snapshot => {
@@ -1545,6 +1590,9 @@ const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 createPostButton?.addEventListener("click", () => {
     if (!isAdmin) return;
 
+    editingPostId = null;
+    editingPostImageUrl = "";
+
     postError.textContent = "";
 
     postForm.reset();
@@ -1554,8 +1602,14 @@ createPostButton?.addEventListener("click", () => {
     }
 
     postImagePreview.hidden = true;
-
     postImagePreview.removeAttribute("src");
+
+    if (postPreviewURL) {
+        URL.revokeObjectURL(postPreviewURL);
+        postPreviewURL = null;
+    }
+
+    publishPostButton.textContent = translate("publishPost");
 
     postEditorDialog.showModal();
 });
@@ -1565,13 +1619,24 @@ createPostButton?.addEventListener("click", () => {
 ========================= */
 
 cancelPostButton?.addEventListener("click", () => {
+    editingPostId = null;
+    editingPostImageUrl = "";
+
     postEditorDialog.close();
 });
 
 postEditorDialog?.addEventListener("click", event => {
     if (event.target === postEditorDialog) {
+        editingPostId = null;
+        editingPostImageUrl = "";
+
         postEditorDialog.close();
     }
+});
+
+postEditorDialog?.addEventListener("close", () => {
+    editingPostId = null;
+    editingPostImageUrl = "";
 });
 
 /* =========================
@@ -1583,17 +1648,22 @@ postImage?.addEventListener("change", () => {
 
     postError.textContent = "";
 
-    postImagePreview.hidden = true;
-
-    postImagePreview.removeAttribute("src");
-
     if (postPreviewURL) {
         URL.revokeObjectURL(postPreviewURL);
-
         postPreviewURL = null;
     }
 
-    if (!file) return;
+    if (!file) {
+        if (editingPostImageUrl) {
+            postImagePreview.src = editingPostImageUrl;
+            postImagePreview.hidden = false;
+        } else {
+            postImagePreview.hidden = true;
+            postImagePreview.removeAttribute("src");
+        }
+
+        return;
+    }
 
     if (!allowedImageTypes.includes(file.type)) {
         postError.textContent = translate("postImageError");
@@ -1614,12 +1684,11 @@ postImage?.addEventListener("change", () => {
     postPreviewURL = URL.createObjectURL(file);
 
     postImagePreview.src = postPreviewURL;
-
     postImagePreview.hidden = false;
 });
 
 /* =========================
-   POSTS: PUBLISH
+   POSTS: SAVE
 ========================= */
 
 postForm?.addEventListener("submit", async event => {
@@ -1637,9 +1706,7 @@ postForm?.addEventListener("submit", async event => {
     }
 
     const title = postTitle.value.trim();
-
     const description = postDescription.value.trim();
-
     const imageFile = postImage.files[0];
 
     if (!title || !description) {
@@ -1674,68 +1741,78 @@ postForm?.addEventListener("submit", async event => {
         postSourceLanguage?.value || "pt"
     );
 
+    const wasEditing = !!editingPostId;
+
     publishPostButton.disabled = true;
 
     publishPostButton.textContent =
-        translate("publishingPost");
+        wasEditing
+            ? (language === "pt" ? "Salvando..." : "Saving...")
+            : translate("publishingPost");
 
     try {
-        let imageUrl = "";
+        let imageUrl = editingPostImageUrl;
 
         if (imageFile) {
             imageUrl = await uploadPostImage(imageFile);
         }
 
-        const newOrder = getNewManualOrder(
-            latestPosts,
-            post => post.data()
-        );
-
         const postData = {
             title,
             description,
             sourceLanguage: detectedLanguage,
-            imageUrl,
-            date: getLocalDate(),
-            createdAt: serverTimestamp(),
-
-            // Campo exigido pelas suas regras do Firestore.
-            uid: user.uid,
-
-            // Mantido para compatibilidade.
-            author: user.uid
+            imageUrl
         };
 
-        if (newOrder !== null) {
-            postData.manualOrder = newOrder;
+        if (editingPostId) {
+            await updateDoc(
+                doc(db, "posts", editingPostId),
+                postData
+            );
+
+        } else {
+            const newOrder = getNewManualOrder(
+                latestPosts,
+                post => post.data()
+            );
+
+            postData.date = getLocalDate();
+            postData.createdAt = serverTimestamp();
+            postData.uid = user.uid;
+            postData.author = user.uid;
+
+            if (newOrder !== null) {
+                postData.manualOrder = newOrder;
+            }
+
+            const postReference = await addDoc(
+                collection(db, "posts"),
+                postData
+            );
+
+            console.log(
+                "Post published successfully:",
+                postReference.id
+            );
         }
 
-        const postReference = await addDoc(
-            collection(db, "posts"),
-            postData
-        );
-
-        console.log(
-            "Post published successfully:",
-            postReference.id
-        );
+        editingPostId = null;
+        editingPostImageUrl = "";
 
         postForm.reset();
 
         postImagePreview.hidden = true;
-
         postImagePreview.removeAttribute("src");
 
         if (postPreviewURL) {
             URL.revokeObjectURL(postPreviewURL);
-
             postPreviewURL = null;
         }
 
         postEditorDialog.close();
 
     } catch (error) {
-        console.error("Post publishing error:", error);
+        console.error("Post save error:", error);
 
         postError.textContent =
             "Error: " +
@@ -1794,9 +1871,7 @@ async function renderPosts(posts) {
             const image = document.createElement("img");
 
             image.src = data.imageUrl;
-
             image.alt = data.title || "Post image";
-
             image.loading = "lazy";
 
             card.appendChild(image);
@@ -1805,7 +1880,6 @@ async function renderPosts(posts) {
         const date = document.createElement("time");
 
         date.className = "post-date";
-
         date.textContent = formatUpdateDate(data.date);
 
         const title = document.createElement("h2");
@@ -1818,30 +1892,81 @@ async function renderPosts(posts) {
 
         card.append(date, title, description);
 
-        // Comentários do post.
-
         commentsFeature.renderComments(
             "posts",
             post.id,
             card
         );
 
-        // Botões para reorganizar.
+        const itemIndex = orderedPosts.findIndex(
+            item => item.id === post.id
+        );
 
         createReorderControls(
             "posts",
             orderedPosts,
-            orderedPosts.findIndex(item => item.id === post.id),
+            itemIndex,
             card
         );
 
-        // Excluir post.
+        // EDITAR POST
+
+        if (isAdmin) {
+            const editButton = document.createElement("button");
+
+            editButton.type = "button";
+            editButton.className = "edit-button";
+
+            editButton.textContent =
+                language === "pt" ? "Editar" : "Edit";
+
+            editButton.addEventListener("click", () => {
+                editingPostId = post.id;
+                editingPostImageUrl = data.imageUrl || "";
+
+                postError.textContent = "";
+
+                postForm.reset();
+
+                postTitle.value = data.title || "";
+                postDescription.value = data.description || "";
+
+                if (postSourceLanguage) {
+                    postSourceLanguage.value =
+                        data.sourceLanguage ||
+                        detectContentLanguage(data);
+                }
+
+                if (postPreviewURL) {
+                    URL.revokeObjectURL(postPreviewURL);
+                    postPreviewURL = null;
+                }
+
+                if (data.imageUrl) {
+                    postImagePreview.src = data.imageUrl;
+                    postImagePreview.hidden = false;
+                } else {
+                    postImagePreview.hidden = true;
+                    postImagePreview.removeAttribute("src");
+                }
+
+                publishPostButton.textContent =
+                    language === "pt"
+                        ? "Salvar alterações"
+                        : "Save changes";
+
+                postEditorDialog.showModal();
+            });
+
+            card.appendChild(editButton);
+        }
+
+        // EXCLUIR POST
 
         if (isAdmin) {
             const deleteButton = document.createElement("button");
 
             deleteButton.type = "button";
-
             deleteButton.className = "delete-button";
 
             deleteButton.textContent =
@@ -1941,7 +2066,6 @@ const postsQuery = query(
     orderBy("createdAt", "desc")
 );
 
-
 onSnapshot(
     postsQuery,
     snapshot => {
@@ -1972,7 +2096,6 @@ onSnapshot(
 postEditorDialog?.addEventListener("close", () => {
     if (postPreviewURL) {
         URL.revokeObjectURL(postPreviewURL);
-
         postPreviewURL = null;
     }
 });
