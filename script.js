@@ -2058,6 +2058,11 @@ onSnapshot(
 
         console.log("MR GREEN: Posts encontrados:", latestPosts.length);
 
+        console.table(latestPosts.map(post => ({
+            id: post.id,
+            title: post.data().title
+        })));
+
         renderLatestPosts();
     },
     error => {
