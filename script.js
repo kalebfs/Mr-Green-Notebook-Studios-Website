@@ -404,21 +404,15 @@ function translate(key) {
 }
 
 
+
 /* =========================
    MANUAL REORDER SYSTEM
 ========================= */
 
-// Organiza os documentos pela ordem manual salva no Firestore.
+// Mantém uma ordem consistente, inclusive quando alguns documentos
+// ainda não possuem manualOrder.
 
 function sortByManualOrder(items, getData = item => item) {
-    const hasManualOrder = items.some(item => {
-        return typeof getData(item).manualOrder === "number";
-    });
-
-    if (!hasManualOrder) {
-        return [...items];
-    }
-
     return [...items].sort((a, b) => {
         const dataA = getData(a);
         const dataB = getData(b);
@@ -434,9 +428,6 @@ function sortByManualOrder(items, getData = item => item) {
         return orderA - orderB;
     });
 }
-
-// Cria os controles de reorganização.
-// Só aparecem para o administrador e quando existem mais de 2 itens.
 
 function createReorderControls(type, items, index, card) {
     if (!isAdmin || items.length <= 2) return;
@@ -479,7 +470,7 @@ function createReorderControls(type, items, index, card) {
     card.appendChild(controls);
 }
 
-// Salva a ordem dos documentos no Firestore.
+// Salva todos os números de ordem em uma única operação.
 
 async function saveManualOrder(type, items) {
     const batch = writeBatch(db);
@@ -496,7 +487,8 @@ async function saveManualOrder(type, items) {
     await batch.commit();
 }
 
-// Move um item para cima ou para baixo.
+// Movimenta os itens usando exatamente a mesma lista
+// que está sendo exibida na tela.
 
 async function moveItem(type, index, direction) {
     if (!isAdmin || updatingOrder[type]) return;
@@ -504,28 +496,29 @@ async function moveItem(type, index, direction) {
     if (type !== "updates" && type !== "posts") return;
 
     const currentItems = type === "updates"
-        ? latestUpdates
-        : latestPosts;
+        ? sortByManualOrder(latestUpdates)
+        : sortByManualOrder(latestPosts, post => post.data());
 
     if (currentItems.length <= 2) return;
 
-    const oldItems = [...currentItems];
-
-    const newItems = [...currentItems];
+    if (!Number.isInteger(index)) return;
 
     const newIndex = index + direction;
 
-    if (newIndex < 0 || newIndex >= newItems.length) return;
+    if (index < 0 || index >= currentItems.length) return;
+
+    if (newIndex < 0 || newIndex >= currentItems.length) return;
+
+    const oldItems = [...currentItems];
+    const newItems = [...currentItems];
 
     const [item] = newItems.splice(index, 1);
 
     newItems.splice(newIndex, 0, item);
 
-    // Bloqueia outros movimentos enquanto salva.
-
     updatingOrder[type] = true;
 
-    // Atualiza a interface imediatamente.
+    // Atualiza os dados locais antes de salvar.
 
     if (type === "updates") {
         latestUpdates = newItems;
@@ -541,7 +534,7 @@ async function moveItem(type, index, direction) {
     } catch (error) {
         console.error("Reordering error:", error);
 
-        // Restaura a ordem anterior se o salvamento falhar.
+        // Restaura a ordem anterior se o Firebase falhar.
 
         if (type === "updates") {
             latestUpdates = oldItems;
@@ -568,14 +561,16 @@ async function moveItem(type, index, direction) {
     }
 }
 
-// Faz com que novas publicações apareçam no começo da lista.
+// Novas publicações entram antes dos itens existentes.
 
 function getNewManualOrder(items, getData = item => item) {
-    const hasManualOrder = items.some(item => {
-        return typeof getData(item).manualOrder === "number";
-    });
+    const manualOrders = items
+        .map(item => getData(item).manualOrder)
+        .filter(order => typeof order === "number");
 
-    return hasManualOrder ? -1 : null;
+    if (manualOrders.length === 0) return null;
+
+    return Math.min(...manualOrders) - 1;
 }
 
 
