@@ -41,7 +41,22 @@
     --button-hover: #9af293;
     --button-text: #071008;
     --modal-backdrop: #000c;
+    --studio-icon: url("icon.png");
 }
+
+    /* ÍCONES SAZONAIS */
+
+    :root[data-theme="orange"] {
+        --studio-icon: url("icon2.png");
+    }
+
+    :root[data-theme="christmas"] {
+        --studio-icon: url("icon3.png");
+    }
+
+    :root[data-theme="newyear"] {
+        --studio-icon: url("icon4.png");
+    }
 
 /* GLOBAL */
 
@@ -218,7 +233,7 @@ main {
         transform: translateY(-50%);
         border: 3px solid var(--hero-ring);
         border-radius: 50%;
-        background-image: url("icon.png");
+        background-image: var(--studio-icon);
         background-size: cover;
         background-position: center;
         box-shadow: 0 0 0 25px var(--hero-ring-shadow), 0 0 0 55px #70d66b05, 0 0 35px var(--brand-shadow);

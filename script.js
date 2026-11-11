@@ -2324,4 +2324,43 @@ function initializeWebsite() {
     );
 }
 
+// =========================================
+// SEASONAL STUDIO ICON
+// =========================================
+
+function updateStudioIcon() {
+    const theme = document.documentElement.dataset.theme;
+
+    const icons = {
+        orange: "icon2.png",
+        christmas: "icon3.png",
+        newyear: "icon4.png"
+    };
+
+    const icon = icons[theme] || "icon.png";
+
+    // Header logo
+    document.querySelectorAll(".brand-mark img").forEach(img => {
+        img.src = icon;
+    });
+
+    // Favicon
+    const favicon = document.querySelector('link[rel="icon"]');
+
+    if (favicon) {
+        favicon.href = icon;
+    }
+}
+
+// Atualiza ao carregar
+updateStudioIcon();
+
+// Detecta mudanças de tema
+const iconObserver = new MutationObserver(updateStudioIcon);
+
+iconObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-theme"]
+});
+
 initializeWebsite();
