@@ -104,37 +104,66 @@ export function initComments({ auth, db, adminUid, getLanguage }) {
         );
     }
 
+    function createFallbackUsername(user) {
+        const baseName = String(user.displayName || "usuario")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9_]/g, "");
+
+        return `${(baseName || "usuario").slice(0, 12)}_${user.uid.slice(0, 6).toLowerCase()}`;
+    }
+
+    function getValidUsername(...values) {
+        for (const value of values) {
+            const username = String(value || "")
+                .trim()
+                .replace(/^@/, "");
+
+            if (/^[a-z0-9_]{3,20}$/i.test(username)) {
+                return username;
+            }
+        }
+
+        return "carregando";
+    }
+
     function watchCommentAuthor(uid, authorElement, fallback = {}) {
         if (!uid || !authorElement) return;
 
         if (!authorElements.has(uid)) {
-            authorElements.set(uid, new Set());
+            authorElements.set(uid, new Map());
         }
 
-        authorElements.get(uid).add(authorElement);
+        const elements = authorElements.get(uid);
 
-        function updateAuthor(profile = {}) {
-            if (!authorElement.isConnected) return;
+        elements.set(authorElement, fallback);
 
-            const usernameElement = authorElement.querySelector(
+        function updateAuthor(element, profile, fallbackData = {}) {
+            if (!element.isConnected) return;
+
+            const usernameElement = element.querySelector(
                 ".comment-author-username"
             );
 
-            const avatar = authorElement.querySelector(".comment-avatar");
+            const avatar = element.querySelector(".comment-avatar");
 
             if (!usernameElement || !avatar) return;
 
-            const username =
-                profile.username ||
-                fallback.username ||
-                fallback.authorUsername ||
-                fallback.authorName ||
-                "user";
+            const username = getValidUsername(
+                profile.username,
+                fallbackData.username,
+                fallbackData.authorUsername,
+                createFallbackUsername({
+                    displayName: fallbackData.authorName,
+                    uid
+                })
+            );
 
             const photoURL =
                 profile.photoURL ||
-                fallback.photoURL ||
-                fallback.authorPhotoURL ||
+                fallbackData.photoURL ||
+                fallbackData.authorPhotoURL ||
                 "";
 
             usernameElement.textContent = `@${username}`;
@@ -149,19 +178,16 @@ export function initComments({ auth, db, adminUid, getLanguage }) {
 
                 image.onerror = () => {
                     image.remove();
-
-                    avatar.textContent =
-                        username.charAt(0).toUpperCase() || "U";
+                    avatar.textContent = username.charAt(0).toUpperCase();
                 };
 
                 avatar.appendChild(image);
             } else {
-                avatar.textContent =
-                    username.charAt(0).toUpperCase() || "U";
+                avatar.textContent = username.charAt(0).toUpperCase();
             }
         }
 
-        updateAuthor(fallback);
+        updateAuthor(authorElement, {}, fallback);
 
         if (profileListeners.has(uid)) return;
 
@@ -174,9 +200,15 @@ export function initComments({ auth, db, adminUid, getLanguage }) {
                     ? snapshot.data()
                     : {};
 
-                for (const element of authorElements.get(uid) || []) {
+                for (const [element, elementFallback] of elements) {
                     if (element.isConnected) {
-                        updateAuthorForElement(element, profile, fallback);
+                        updateAuthor(
+                            element,
+                            profile,
+                            elementFallback
+                        );
+                    } else {
+                        elements.delete(element);
                     }
                 }
             },
@@ -568,18 +600,22 @@ export function initComments({ auth, db, adminUid, getLanguage }) {
                 await addDoc(commentsCollection, {
                     text,
                     authorUid: user.uid,
+
                     authorName:
                         profile.displayName ||
                         user.displayName ||
-                        "User",
-                    authorUsername:
-                        profile.username ||
-                        user.displayName ||
-                        "user",
+                        "Usuário",
+
+                    authorUsername: getValidUsername(
+                        profile.username,
+                        createFallbackUsername(user)
+                    ),
+
                     authorPhotoURL:
                         profile.photoURL ||
                         user.photoURL ||
                         "",
+
                     createdAt: serverTimestamp()
                 });
 
@@ -659,7 +695,7 @@ export function initComments({ auth, db, adminUid, getLanguage }) {
                     const username = createElement(
                         "span",
                         "comment-author-username",
-                        "@user"
+                        "@carregando"
                     );
 
                     authorInfo.appendChild(username);
