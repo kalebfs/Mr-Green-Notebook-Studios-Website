@@ -211,13 +211,17 @@ main {
     .hero::after {
         content: "";
         position: absolute;
-        width: 340px;
-        height: 340px;
-        right: 5%;
-        top: 7%;
-        border: 1px solid var(--hero-ring);
+        width: 260px;
+        height: 260px;
+        right: 8%;
+        top: 50%;
+        transform: translateY(-50%);
+        border: 3px solid var(--hero-ring);
         border-radius: 50%;
-        box-shadow: 0 0 0 35px var(--hero-ring-shadow), 0 0 0 75px #70d66b05;
+        background-image: url("icon.png");
+        background-size: cover;
+        background-position: center;
+        box-shadow: 0 0 0 25px var(--hero-ring-shadow), 0 0 0 55px #70d66b05, 0 0 35px var(--brand-shadow);
         pointer-events: none;
     }
 
@@ -1565,22 +1569,3 @@ footer {
     font-size: 11px;
     margin-left: 5px;
 }
-
-.home-logo {
-    width: 110px;
-    height: 110px;
-    border-radius: 50%;
-    overflow: hidden;
-    margin: 0 auto 25px;
-    border: 2px solid var(--accent, #4caf50);
-    background: #080d09;
-    box-shadow: 0 0 25px rgba(76, 175, 80, 0.2);
-}
-
-    .home-logo img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        border-radius: 50%;
-        display: block;
-    }
