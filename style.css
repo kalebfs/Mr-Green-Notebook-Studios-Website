@@ -1565,3 +1565,22 @@ footer {
     font-size: 11px;
     margin-left: 5px;
 }
+
+.home-logo {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin: 0 auto 25px;
+    border: 2px solid var(--accent, #4caf50);
+    background: #080d09;
+    box-shadow: 0 0 25px rgba(76, 175, 80, 0.2);
+}
+
+    .home-logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+        display: block;
+    }
