@@ -251,7 +251,7 @@ const projects = [
         icon: "",
         tag: "Game",
         image: "images/momo-horror.jpg",
-        pc: "",
+        pc: "https://github.com/kalebfs/Mr-Green-Notebook-Studios-Website/releases/download/V0.6/Momo.Horror.Game.Escape.House.Reunion.0.6.PC.Port.rar",
         mobile: "",
         desc: {
             pt: "Um jogo original de terror desenvolvido pelo estúdio.",
