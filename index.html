@@ -33,6 +33,9 @@
                 <button class="nav-btn" data-page="mods" data-i18n="navMods">Mods</button>
                 <button class="nav-btn" data-page="remakes" data-i18n="navRemakes">Remakes</button>
                 <button class="nav-btn" data-page="games" data-i18n="navGames">Jogos</button>
+                <button class="nav-btn" data-page="videos" data-i18n="navVideos">
+                    Vídeos
+                </button>
                 <button class="nav-btn" data-page="updates" data-i18n="navUpdates">Atualizações</button>
                 <button class="nav-btn" data-page="posts" data-i18n="navPosts">Posts</button>
                 <button class="nav-btn" data-page="profile">
@@ -133,6 +136,35 @@
             <p class="page-intro" data-i18n="gamesIntro"></p>
 
             <div class="grid" id="gamesGrid"></div>
+
+        </section>
+
+        <!-- VIDEOS -->
+        <section class="page" id="videos">
+
+            <div class="eyebrow">MR GREEN / YOUTUBE</div>
+
+            <h1 class="page-title" data-i18n="videosTitle">
+                Vídeos
+            </h1>
+
+            <p class="page-intro" data-i18n="videosIntro">
+                Todos os vídeos do nosso canal no YouTube.
+            </p>
+
+            <p id="youtubeVideosStatus" class="youtube-status">
+                Carregando vídeos...
+            </p>
+
+            <div class="youtube-videos-grid" id="youtubeVideosGrid"></div>
+
+            <button id="loadMoreVideosButton"
+                    class="primary"
+                    type="button"
+                    hidden
+                    data-i18n="loadMoreVideos">
+                CARREGAR MAIS
+            </button>
 
         </section>
 

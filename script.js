@@ -86,6 +86,14 @@ const translations = {
         navMods: "Mods",
         navRemakes: "Remakes",
         navGames: "Jogos",
+        navVideos: "Vídeos",
+        videosTitle: "Vídeos",
+        videosIntro: "Todos os vídeos do nosso canal no YouTube.",
+        watchVideo: "ASSISTIR",
+        loadMoreVideos: "CARREGAR MAIS",
+        loadingVideos: "Carregando vídeos...",
+        videosError: "Não foi possível carregar os vídeos.",
+        noVideos: "Nenhum vídeo encontrado.",
         navUpdates: "Atualizações",
         navPosts: "Posts",
         navAbout: "Sobre",
@@ -152,6 +160,14 @@ const translations = {
         navMods: "Mods",
         navRemakes: "Remakes",
         navGames: "Games",
+        navVideos: "Videos",
+        videosTitle: "Videos",
+        videosIntro: "All videos from our YouTube channel.",
+        watchVideo: "WATCH",
+        loadMoreVideos: "LOAD MORE",
+        loadingVideos: "Loading videos...",
+        videosError: "Could not load videos.",
+        noVideos: "No videos found.",
         navUpdates: "Updates",
         navPosts: "Posts",
         navAbout: "About",
@@ -302,6 +318,7 @@ const validPages = [
     "mods",
     "remakes",
     "games",
+    "videos",
     "updates",
     "posts",
     "about",
@@ -958,6 +975,10 @@ function showPage(pageId, updateHistory = true) {
         top: 0,
         behavior: "smooth"
     });
+
+    if (pageId === "videos") {
+        loadYouTubeVideos();
+    }
 }
 
 /* =========================
@@ -2238,6 +2259,22 @@ function changeLanguage(nextLanguage) {
 
     applyStaticTranslations();
 
+    if (youtubeVideosGrid) {
+        youtubeVideosGrid
+            .querySelectorAll(".youtube-watch-button")
+            .forEach(button => {
+                button.textContent = translate("watchVideo");
+            });
+    }
+
+    if (loadMoreVideosButton) {
+        loadMoreVideosButton.textContent = translate("loadMoreVideos");
+    }
+
+    if (youtubeVideosStatus && !youtubeVideosLoaded) {
+        youtubeVideosStatus.textContent = translate("loadingVideos");
+    }
+
     renderProjects();
     renderFirestoreUpdates();
     renderLatestPosts();
@@ -2267,6 +2304,183 @@ document.querySelectorAll("[data-page]").forEach(element => {
         showPage(element.dataset.page);
     });
 });
+
+
+/* =========================
+   YOUTUBE VIDEOS
+========================= */
+
+const YOUTUBE_API_KEY = "AIzaSyBfT1s6OAn3z88udnCjPjOGFP335ysFQLI";
+const YOUTUBE_CHANNEL_HANDLE = "@mrgreennotebook";
+
+const youtubeVideosGrid = document.getElementById("youtubeVideosGrid");
+const youtubeVideosStatus = document.getElementById("youtubeVideosStatus");
+const loadMoreVideosButton = document.getElementById("loadMoreVideosButton");
+
+let youtubeUploadsPlaylist = null;
+let youtubeNextPageToken = null;
+let youtubeVideosLoaded = false;
+let youtubeVideosLoading = false;
+
+function setYouTubeStatus(message) {
+    if (youtubeVideosStatus) {
+        youtubeVideosStatus.textContent = message;
+    }
+}
+
+async function getYouTubeUploadsPlaylist() {
+    const url = new URL("https://www.googleapis.com/youtube/v3/channels");
+
+    url.search = new URLSearchParams({
+        part: "contentDetails",
+        forHandle: YOUTUBE_CHANNEL_HANDLE,
+        key: YOUTUBE_API_KEY
+    });
+
+    const response = await fetch(url);
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(result.error?.message || "YouTube API error.");
+    }
+
+    const channel = result.items?.[0];
+
+    if (!channel) {
+        throw new Error("YouTube channel not found.");
+    }
+
+    return channel.contentDetails.relatedPlaylists.uploads;
+}
+
+function createYouTubeVideoCard(video) {
+    const snippet = video.snippet;
+    const videoId = snippet?.resourceId?.videoId;
+
+    if (!videoId) return null;
+
+    const card = document.createElement("article");
+    card.className = "youtube-video-card";
+
+    const thumbnailLink = document.createElement("a");
+    thumbnailLink.href = `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
+    thumbnailLink.target = "_blank";
+    thumbnailLink.rel = "noopener noreferrer";
+    thumbnailLink.className = "youtube-thumbnail-link";
+
+    const thumbnail = document.createElement("img");
+    thumbnail.src = snippet.thumbnails?.high?.url ||
+        `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+    thumbnail.alt = snippet.title || "YouTube video";
+    thumbnail.loading = "lazy";
+
+    thumbnail.onerror = () => {
+        thumbnail.onerror = null;
+        thumbnail.src = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+    };
+
+    thumbnailLink.appendChild(thumbnail);
+
+    const content = document.createElement("div");
+    content.className = "youtube-video-content";
+
+    const title = document.createElement("h3");
+    title.textContent = snippet.title || "Untitled video";
+
+    const watchButton = document.createElement("a");
+    watchButton.className = "youtube-watch-button";
+    watchButton.href = `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
+    watchButton.target = "_blank";
+    watchButton.rel = "noopener noreferrer";
+    watchButton.textContent = translate("watchVideo");
+
+    content.append(title, watchButton);
+    card.append(thumbnailLink, content);
+
+    return card;
+}
+
+async function loadYouTubeVideos() {
+    if (!youtubeVideosGrid || youtubeVideosLoading) return;
+
+    if (youtubeVideosLoaded && !youtubeNextPageToken) return;
+
+    youtubeVideosLoading = true;
+
+    setYouTubeStatus(translate("loadingVideos"));
+
+    if (loadMoreVideosButton) {
+        loadMoreVideosButton.disabled = true;
+    }
+
+    try {
+        if (!youtubeUploadsPlaylist) {
+            youtubeUploadsPlaylist = await getYouTubeUploadsPlaylist();
+        }
+
+        const url = new URL("https://www.googleapis.com/youtube/v3/playlistItems");
+
+        const params = {
+            part: "snippet",
+            playlistId: youtubeUploadsPlaylist,
+            maxResults: "50",
+            key: YOUTUBE_API_KEY
+        };
+
+        if (youtubeNextPageToken) {
+            params.pageToken = youtubeNextPageToken;
+        }
+
+        url.search = new URLSearchParams(params);
+
+        const response = await fetch(url);
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error?.message || "YouTube API error.");
+        }
+
+        const videos = result.items || [];
+
+        videos.forEach(video => {
+            const card = createYouTubeVideoCard(video);
+
+            if (card) {
+                youtubeVideosGrid.appendChild(card);
+            }
+        });
+
+        youtubeNextPageToken = result.nextPageToken || null;
+        youtubeVideosLoaded = true;
+
+        if (loadMoreVideosButton) {
+            loadMoreVideosButton.hidden = !youtubeNextPageToken;
+        }
+
+        if (youtubeVideosGrid.children.length === 0) {
+            setYouTubeStatus(translate("noVideos"));
+        } else {
+            setYouTubeStatus("");
+        }
+
+    } catch (error) {
+        console.error("YouTube videos error:", error);
+        setYouTubeStatus(translate("videosError"));
+
+        if (loadMoreVideosButton) {
+            loadMoreVideosButton.hidden = true;
+        }
+
+    } finally {
+        youtubeVideosLoading = false;
+
+        if (loadMoreVideosButton) {
+            loadMoreVideosButton.disabled = false;
+        }
+    }
+}
+
+loadMoreVideosButton?.addEventListener("click", loadYouTubeVideos);
 
 /* =========================
    BROWSER HISTORY
