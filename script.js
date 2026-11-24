@@ -236,10 +236,23 @@ const translations = {
 
 const projects = [
     {
-        name: "Baldi's Basics Remagined",
+        name: "Granny 9th Anniversary Mod",
         type: "mods",
         icon: "",
         tag: "Mod",
+        image: "images/grannybirthday9th.jpg",
+        pc: "",
+        mobile: "https://github.com/kalebfs/Mr-Green-Notebook-Studios-Website/releases/download/V1.0/GrannyHappyBirthdayMod.apk",
+        desc: {
+            pt: "Visite a casa de granny em seu aniversario! boa sorte e feliz aniversario de 9 anos para ela.",
+            en: "Visit granny's house in your birthday! good luck and happy 9 years birthday for her."
+        }
+    },
+    {
+        name: "Baldi's Basics Remagined",
+        type: "remakes",
+        icon: "",
+        tag: "Remake",
         image: "images/baldi-mods.jpg",
         pc: "https://github.com/kalebfs/Mr-Green-Notebook-Studios-Website/releases/download/V1.6/baldi_s_basics_remagined_v16.rar",
         mobile: "NEVER",
