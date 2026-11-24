@@ -241,7 +241,7 @@ const projects = [
         icon: "",
         tag: "Mod",
         image: "images/grannybirthday9th.jpg",
-        pc: "",
+        pc: "https://github.com/kalebfs/Mr-Green-Notebook-Studios-Website/releases/download/V1.0/Granny.9th.Birthday.PC.Port.Mod.rar",
         mobile: "https://github.com/kalebfs/Mr-Green-Notebook-Studios-Website/releases/download/V1.0/GrannyHappyBirthdayMod.apk",
         desc: {
             pt: "Visite a casa de granny em seu aniversario! boa sorte e feliz aniversario de 9 anos para ela.",
